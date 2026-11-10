@@ -1,0 +1,22 @@
+/* Design tokens. These match the team mockups; change them here only. */
+:root {
+  --purple: #5b2ee5;
+  --pink: #ff4f8b;
+  --deep: #2d1a7a;
+  --yellow: #ffd23f;
+  --cyan: #3ec6ff;
+  --green: #7ce38b;
+  --orange: #ff8a3d;
+  --lilac: #c9a7ff;
+  --ink: #1a1033;
+  --white: #ffffff;
+
+  --outline: 4px solid var(--ink);
+  --outline-thin: 3px solid var(--ink);
+  --shadow: 6px 6px 0 var(--ink);
+  --shadow-btn: 0 6px 0 var(--ink);
+  --radius: 20px;
+
+  --font-head: 'Lilita One', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}

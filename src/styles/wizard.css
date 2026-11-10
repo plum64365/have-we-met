@@ -1,0 +1,167 @@
+/* The wizard console is a plain working tool for a teammate's laptop, not a show screen. */
+.wiz {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 15px;
+  color: var(--ink);
+}
+.wiz h1 {
+  font-size: 30px;
+  color: var(--white);
+}
+.wiz > p {
+  color: var(--white);
+}
+.wiz h2 {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+.wiz h3 {
+  font-family: var(--font-body);
+  font-weight: 900;
+  font-size: 14px;
+  text-transform: uppercase;
+  margin: 10px 0 4px;
+}
+.wiz-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 10px 0;
+  background: var(--deep);
+}
+.wiz-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 6px;
+  color: var(--white);
+}
+.wiz-status b {
+  color: var(--yellow);
+}
+.wiz .ok {
+  color: #0d6b2a;
+  font-weight: 900;
+}
+.wiz .bad {
+  color: #b00030;
+  font-weight: 900;
+}
+.wiz-status .ok {
+  color: var(--green);
+}
+.wiz-status .bad {
+  color: var(--yellow);
+}
+.wiz-message {
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-weight: 800;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.wiz-panel {
+  padding: 16px;
+  background: var(--white);
+  border: var(--outline-thin);
+  border-radius: 14px;
+}
+.wiz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.wiz-row.sticky {
+  position: sticky;
+  top: 96px;
+  z-index: 1;
+  padding: 8px 0;
+  background: var(--white);
+  align-items: center;
+}
+.wiz label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-weight: 800;
+  font-size: 13px;
+}
+.wiz label.grow {
+  flex: 1;
+  min-width: 280px;
+}
+.wiz input,
+.wiz select,
+.wiz textarea {
+  min-height: 36px;
+  padding: 6px 8px;
+  font-weight: 600;
+  font-size: 15px;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.wiz :focus-visible {
+  outline: 3px solid var(--purple);
+  outline-offset: 1px;
+}
+.wbtn {
+  min-height: 36px;
+  padding: 6px 14px;
+  font-weight: 900;
+  background: #efe9ff;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.wbtn.primary {
+  background: var(--yellow);
+}
+.wbtn.small {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.wbtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.wiz-data {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.wiz-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.wiz-table th,
+.wiz-table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid #d9d4e6;
+}
+.wiz-editor fieldset {
+  margin-top: 14px;
+  padding: 12px;
+  border: 2px solid #d9d4e6;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wiz-editor legend {
+  padding: 0 6px;
+  font-weight: 900;
+}
+.wiz-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
