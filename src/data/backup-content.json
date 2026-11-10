@@ -1,0 +1,267 @@
+{
+  "categories": {
+    "Food": {
+      "tierlist": { "topic": "Late-night food runs", "items": ["Instant ramen", "Tacos", "Pizza slice", "Boba", "Fries", "Cereal for dinner", "Burritos", "Ice cream"] },
+      "wit": [
+        "The worst possible topping to put on {name}'s pizza",
+        "A dining hall dish that deserves a restraining order",
+        "The secret ingredient in {name}'s famous 2 a.m. snack"
+      ],
+      "realtalk": {
+        "light": ["What's your go-to comfort food after a rough day?", "What's a food you'd happily eat every day for a month?"],
+        "real": ["What meal reminds you most of home?", "Who taught you the most about food, and what did they teach you?"],
+        "deep": ["What's a meal you shared with someone that you'll never forget?", "When do you feel most taken care of?"]
+      },
+      "hangout": { "activity": "Split a table of shareable plates and rank them together", "spot_categories": ["food", "cafe"] }
+    },
+    "Music": {
+      "tierlist": { "topic": "Ways to listen to music", "items": ["Live concert", "Car with windows down", "Headphones on a walk", "Shower speaker", "Vinyl", "Karaoke", "Festival", "Someone else's playlist"] },
+      "wit": [
+        "The song {name} secretly has on repeat",
+        "A terrible name for a band formed by this group",
+        "The worst song to play when someone hands you the aux"
+      ],
+      "realtalk": {
+        "light": ["What song do you never skip?", "What was the first concert you went to?"],
+        "real": ["What song takes you straight back to a specific moment?", "What music did you grow up hearing at home?"],
+        "deep": ["What song got you through a hard time?", "What lyric feels like it was written about you?"]
+      },
+      "hangout": { "activity": "Build a shared playlist where everyone adds 3 songs, then listen together", "spot_categories": ["cafe", "outdoors", "beach"] }
+    },
+    "Gaming": {
+      "tierlist": { "topic": "Party games for a group", "items": ["Mario Kart", "Super Smash Bros", "Among Us", "Minecraft", "Just Dance", "Overcooked", "Uno", "Mario Party"] },
+      "wit": [
+        "What {name} yells when they lose a round",
+        "A terrible name for a video game about college",
+        "The cheat code everyone wishes worked in real life"
+      ],
+      "realtalk": {
+        "light": ["What game could you play forever without getting bored?", "What's the first game you remember loving?"],
+        "real": ["Who did you play games with growing up?", "What's a game that taught you something real?"],
+        "deep": ["When did you last feel truly proud of something you worked hard at?", "What do you do when you need to escape for a while?"]
+      },
+      "hangout": { "activity": "Run a mini tournament where the loser picks the next game", "spot_categories": ["games"] }
+    },
+    "Anime": {
+      "tierlist": { "topic": "Anime tropes", "items": ["Tournament arc", "Beach episode", "Training montage", "Power of friendship", "Transfer student", "Dramatic flashback", "Rival turned friend", "Filler episode"] },
+      "wit": [
+        "The name of {name}'s ultimate special move",
+        "A terrible power to get in an anime",
+        "The title of an anime about this class"
+      ],
+      "realtalk": {
+        "light": ["What show would you recommend to anyone?", "Which fictional world would you move to?"],
+        "real": ["Which character do you relate to the most, and why?", "What show did you watch at exactly the right time in your life?"],
+        "deep": ["What story changed how you see something?", "What's a goal you'd train years for?"]
+      },
+      "hangout": { "activity": "Watch one episode each person picks, then vote on the best opening", "spot_categories": ["games", "food"] }
+    },
+    "Sports": {
+      "tierlist": { "topic": "Sports to play with friends", "items": ["Pickleball", "Volleyball", "Basketball", "Soccer", "Spikeball", "Ultimate frisbee", "Badminton", "Dodgeball"] },
+      "wit": [
+        "{name}'s walk-up song when they enter the game",
+        "A sport that should be in the Olympics but isn't",
+        "The worst thing a coach could yell from the sideline"
+      ],
+      "realtalk": {
+        "light": ["What sport do you wish you were great at?", "What team or athlete do you always root for?"],
+        "real": ["What did being on a team (any team) teach you?", "What's a loss you still think about?"],
+        "deep": ["When did you push through something you wanted to quit?", "Who has been in your corner the longest?"]
+      },
+      "hangout": { "activity": "Play a low-stakes pickup game where teams reshuffle every round", "spot_categories": ["fitness", "beach"] }
+    },
+    "Outdoors": {
+      "tierlist": { "topic": "Outdoor plans", "items": ["Sunset hike", "Beach bonfire", "Camping", "Picnic", "Surfing", "Stargazing", "Kayaking", "Tide pools"] },
+      "wit": [
+        "What {name} would pack first for a camping trip",
+        "A terrible name for a hiking trail",
+        "The worst thing to hear from your tent at night"
+      ],
+      "realtalk": {
+        "light": ["What's your favorite spot to be outside around here?", "Sunrise or sunset, and where?"],
+        "real": ["Where do you go when you need to clear your head?", "What's a place that felt bigger than you expected?"],
+        "deep": ["When do you feel most at peace?", "What's a moment outdoors that you wish you could relive?"]
+      },
+      "hangout": { "activity": "Catch the sunset together and bring one snack each to share", "spot_categories": ["outdoors", "beach"] }
+    },
+    "Movies & TV": {
+      "tierlist": { "topic": "Movie night genres", "items": ["Rom-com", "Horror", "Animated", "Superhero", "Documentary", "Heist", "Musical", "Sci-fi"] },
+      "wit": [
+        "The title of the movie about {name}'s week",
+        "A sequel nobody asked for",
+        "The worst thing to say out loud in a quiet theater"
+      ],
+      "realtalk": {
+        "light": ["What's a movie you can quote start to finish?", "What show are you watching right now?"],
+        "real": ["What movie did you love as a kid, and does it hold up?", "Which character felt like they understood you?"],
+        "deep": ["What film made you cry, and why did it hit so hard?", "If your life were a movie, what would this chapter be called?"]
+      },
+      "hangout": { "activity": "Pick a movie by elimination: everyone vetoes one option until one is left", "spot_categories": ["movies"] }
+    },
+    "Fashion": {
+      "tierlist": { "topic": "Campus outfit staples", "items": ["Hoodie", "Baggy jeans", "Crocs", "Tote bag", "Sweatpants", "Thrifted jacket", "Sneakers", "Sandals with socks"] },
+      "wit": [
+        "The name of {name}'s future clothing brand",
+        "A fashion trend that should come back",
+        "The worst possible dress code for a final exam"
+      ],
+      "realtalk": {
+        "light": ["What's the most-worn thing in your closet?", "What's your best thrift or bargain find?"],
+        "real": ["What's something you own that has a story behind it?", "When did your style change the most?"],
+        "deep": ["When do you feel most like yourself?", "What's something you stopped caring about what others think of?"]
+      },
+      "hangout": { "activity": "Do a budget challenge: find the best item under ten dollars for someone else", "spot_categories": ["shopping"] }
+    },
+    "Art & design": {
+      "tierlist": { "topic": "Creative hobbies", "items": ["Doodling in notes", "Film photography", "Pottery", "Digital art", "Painting", "Scrapbooking", "Crochet", "Graphic tees"] },
+      "wit": [
+        "The title of {name}'s first gallery show",
+        "A terrible name for a new paint color",
+        "The worst thing to hear from someone looking at your art"
+      ],
+      "realtalk": {
+        "light": ["What's something you've made that you're proud of?", "What's a design or object you think is perfect?"],
+        "real": ["What did you love making as a kid?", "Whose creative work do you admire, and why?"],
+        "deep": ["What would you make if you knew nobody would judge it?", "What's something beautiful that you noticed recently?"]
+      },
+      "hangout": { "activity": "Wander an exhibit and each pick the piece that matches someone else in the group", "spot_categories": ["arts", "cafe"] }
+    },
+    "Tech": {
+      "tierlist": { "topic": "Apps on your phone", "items": ["Maps", "Notes", "Camera", "Spotify", "YouTube", "Calendar", "Group chat", "Calculator"] },
+      "wit": [
+        "The app {name} should definitely build",
+        "A terrible feature for a smart fridge",
+        "The worst possible wifi network name for a dorm"
+      ],
+      "realtalk": {
+        "light": ["What app do you open first in the morning?", "What's a gadget you can't live without?"],
+        "real": ["What's something you taught yourself from the internet?", "What piece of tech changed your daily life the most?"],
+        "deep": ["What problem do you wish you could solve?", "What would you do with a week completely offline?"]
+      },
+      "hangout": { "activity": "Trade the most useful app or trick each of you knows over drinks", "spot_categories": ["cafe", "games"] }
+    },
+    "Travel": {
+      "tierlist": { "topic": "Kinds of trips", "items": ["Road trip", "Beach week", "Big city weekend", "Camping", "Theme park", "Backpacking", "Visiting family", "Staycation"] },
+      "wit": [
+        "What {name} would definitely forget to pack",
+        "A terrible slogan for a budget airline",
+        "The worst souvenir to bring back for a friend"
+      ],
+      "realtalk": {
+        "light": ["What's the best trip you've ever taken?", "Where would you go tomorrow if it were free?"],
+        "real": ["What place felt like home even though it wasn't?", "What did traveling teach you about yourself?"],
+        "deep": ["Where do you feel you belong?", "What's a place you want to return to with someone you care about?"]
+      },
+      "hangout": { "activity": "Take a mini day trip and let each person choose one stop", "spot_categories": ["beach", "arts", "outdoors"] }
+    },
+    "Fitness": {
+      "tierlist": { "topic": "Ways to work out", "items": ["Lifting", "Running", "Yoga", "Hiking", "Dance class", "Swimming", "Rock climbing", "Walking to class"] },
+      "wit": [
+        "The name of {name}'s signature workout move",
+        "A terrible name for a gym",
+        "The worst song for a workout playlist"
+      ],
+      "realtalk": {
+        "light": ["What's your favorite way to move?", "Morning workout or night workout?"],
+        "real": ["What got you into fitness in the first place?", "What's a goal you're working toward right now?"],
+        "deep": ["When did you surprise yourself with what you could do?", "How do you take care of yourself when things get heavy?"]
+      },
+      "hangout": { "activity": "Try a workout none of you has done before, then get smoothies", "spot_categories": ["fitness", "outdoors"] }
+    },
+    "Pets": {
+      "tierlist": { "topic": "Animals as roommates", "items": ["Golden retriever", "Cat", "Hamster", "Parrot", "Rabbit", "Goldfish", "Gecko", "Capybara"] },
+      "wit": [
+        "What {name}'s pet would say if it could talk",
+        "A terrible name for a dog",
+        "The worst animal to bring to class as a support pet"
+      ],
+      "realtalk": {
+        "light": ["Tell us about a pet you love (yours or someone else's).", "If you could have any animal as a pet, which one?"],
+        "real": ["What did a pet teach you?", "What animal do you think you're most like, and why?"],
+        "deep": ["Who or what do you miss most from home?", "What makes you feel unconditionally loved?"]
+      },
+      "hangout": { "activity": "Go animal-spotting together and name every one you see", "spot_categories": ["beach", "arts", "outdoors"] }
+    },
+    "Books": {
+      "tierlist": { "topic": "Places to read", "items": ["In bed", "Library corner", "Coffee shop", "Beach towel", "On the bus", "Park bench", "Bathtub", "During lecture"] },
+      "wit": [
+        "The title of {name}'s autobiography",
+        "A terrible name for a self-help book",
+        "The worst first line for a novel"
+      ],
+      "realtalk": {
+        "light": ["What's a book you'd lend to anyone?", "What are you reading or wanting to read?"],
+        "real": ["What book did you read at exactly the right time?", "Which character has stayed with you for years?"],
+        "deep": ["What idea changed how you live?", "What story do you tell about yourself that you'd like to rewrite?"]
+      },
+      "hangout": { "activity": "Swap a favorite book or article and explain it in 60 seconds", "spot_categories": ["cafe"] }
+    },
+    "Cooking": {
+      "tierlist": { "topic": "Dorm-kitchen meals", "items": ["Fried rice", "Pasta", "Quesadilla", "Grilled cheese", "Instant ramen upgrade", "Stir fry", "Breakfast burrito", "Mug cake"] },
+      "wit": [
+        "The name of {name}'s cooking show",
+        "A terrible flavor for a new potato chip",
+        "The worst thing to find in the shared fridge"
+      ],
+      "realtalk": {
+        "light": ["What's the one dish you can make well?", "What's the biggest kitchen disaster you've had?"],
+        "real": ["What recipe connects you to your family?", "Who do you love cooking for?"],
+        "deep": ["What does home taste like to you?", "What's a tradition you want to keep going?"]
+      },
+      "hangout": { "activity": "Cook one dish together where everyone brings a single ingredient", "spot_categories": ["food"] }
+    },
+    "Going out": {
+      "tierlist": { "topic": "Friday night plans", "items": ["Karaoke", "Bowling", "House party", "Late-night diner", "Concert", "Arcade", "Beach bonfire", "Dancing"] },
+      "wit": [
+        "{name}'s go-to karaoke song",
+        "A terrible theme for a party",
+        "The worst excuse to leave a party early"
+      ],
+      "realtalk": {
+        "light": ["What's your ideal Friday night?", "What's the best night out you've had this year?"],
+        "real": ["Who's the friend that always gets you out of the house?", "What makes a night memorable for you?"],
+        "deep": ["When did you last feel completely yourself in a crowd?", "What kind of friend are you trying to be?"]
+      },
+      "hangout": { "activity": "Do a three-stop night where each stop is someone else's pick", "spot_categories": ["nightlife", "food", "games"] }
+    }
+  },
+  "general": {
+    "tierlist": { "topic": "Study spots", "items": ["Library quiet floor", "Coffee shop", "Your bed", "Dorm lounge", "Outside on the grass", "Empty classroom", "Dining hall", "Friend's place"] },
+    "wit": [
+      "The real reason {name} was late today",
+      "A new class this school should offer: {interest} for people who...",
+      "The worst advice to give a new student",
+      "What {name} would do with a surprise day off",
+      "A terrible slogan for a club about {interest}",
+      "The group chat name for everyone in this room",
+      "The worst possible thing to say on a first day of class",
+      "What {name}'s alarm clock would say if it could talk",
+      "A rule this group should make everyone follow",
+      "The most useless superpower for a college student"
+    ],
+    "realtalk": {
+      "light": [
+        "What's the best thing that happened to you this week?",
+        "What's a small thing that always makes your day better?",
+        "What's something you're weirdly good at?",
+        "What would your perfect Saturday look like?",
+        "What's a hobby you'd pick up if you had more time?"
+      ],
+      "real": [
+        "What's something you've changed your mind about recently?",
+        "Who's someone that shaped who you are?",
+        "What's been harder about college than you expected?",
+        "What are you looking forward to this year?",
+        "What's a compliment you still remember?"
+      ],
+      "deep": [
+        "What's something you're proud of that most people don't know?",
+        "What do you wish people understood about you sooner?",
+        "What's something you're still figuring out?",
+        "When did you last feel like you truly belonged?",
+        "What would you tell yourself from one year ago?"
+      ]
+    },
+    "hangout": { "activity": "Grab a drink and take a walk, where each person picks one turn", "spot_categories": ["cafe", "outdoors"] }
+  }
+}

@@ -1,0 +1,18 @@
+[
+  { "id": "price-center", "name": "Price Center food court", "category": "food", "lat": 32.8797, "lng": -117.2362, "minutes": 5, "good_for": ["Food", "Cooking"], "placeholder": true },
+  { "id": "convoy-street", "name": "Convoy Street (KBBQ, ramen, boba)", "category": "food", "lat": 32.8247, "lng": -117.1546, "minutes": 20, "good_for": ["Food", "Cooking", "Anime"], "placeholder": true },
+  { "id": "campus-boba", "name": "Boba spot near campus", "category": "cafe", "lat": 32.8702, "lng": -117.2155, "minutes": 10, "good_for": ["Music", "Books", "Tech"], "placeholder": true },
+  { "id": "village-bookshop-cafe", "name": "La Jolla village bookshop + coffee", "category": "cafe", "lat": 32.8470, "lng": -117.2740, "minutes": 15, "good_for": ["Books", "Art & design"], "placeholder": true },
+  { "id": "la-jolla-shores", "name": "La Jolla Shores beach", "category": "beach", "lat": 32.8580, "lng": -117.2567, "minutes": 10, "good_for": ["Outdoors", "Travel"], "placeholder": true },
+  { "id": "gliderport", "name": "Torrey Pines Gliderport cliffs", "category": "outdoors", "lat": 32.8898, "lng": -117.2510, "minutes": 10, "good_for": ["Outdoors", "Travel", "Music"], "placeholder": true },
+  { "id": "torrey-pines-trails", "name": "Torrey Pines trails", "category": "outdoors", "lat": 32.9200, "lng": -117.2536, "minutes": 15, "good_for": ["Outdoors", "Fitness"], "placeholder": true },
+  { "id": "la-jolla-cove", "name": "La Jolla Cove (sea lions + tacos)", "category": "beach", "lat": 32.8504, "lng": -117.2729, "minutes": 15, "good_for": ["Pets", "Travel"], "placeholder": true },
+  { "id": "utc-mall", "name": "Westfield UTC", "category": "shopping", "lat": 32.8710, "lng": -117.2120, "minutes": 10, "good_for": ["Fashion", "Going out"], "placeholder": true },
+  { "id": "utc-movies", "name": "Movie theater at UTC", "category": "movies", "lat": 32.8716, "lng": -117.2110, "minutes": 10, "good_for": ["Movies & TV"], "placeholder": true },
+  { "id": "campus-game-lounge", "name": "Campus game lounge", "category": "games", "lat": 32.8799, "lng": -117.2365, "minutes": 5, "good_for": ["Gaming", "Tech"], "placeholder": true },
+  { "id": "board-game-cafe", "name": "Board game cafe, Kearny Mesa", "category": "games", "lat": 32.8330, "lng": -117.1500, "minutes": 20, "good_for": ["Gaming", "Anime"], "placeholder": true },
+  { "id": "rimac-courts", "name": "RIMAC courts and field", "category": "fitness", "lat": 32.8853, "lng": -117.2400, "minutes": 5, "good_for": ["Sports", "Fitness"], "placeholder": true },
+  { "id": "birch-aquarium", "name": "Birch Aquarium", "category": "arts", "lat": 32.8659, "lng": -117.2507, "minutes": 10, "good_for": ["Pets", "Art & design"], "placeholder": true },
+  { "id": "balboa-park", "name": "Balboa Park museums", "category": "arts", "lat": 32.7341, "lng": -117.1446, "minutes": 25, "good_for": ["Art & design", "Travel", "Fashion"], "placeholder": true },
+  { "id": "pacific-beach", "name": "Pacific Beach boardwalk", "category": "nightlife", "lat": 32.7978, "lng": -117.2570, "minutes": 20, "good_for": ["Going out", "Music"], "placeholder": true }
+]
