@@ -1,0 +1,7 @@
+# Minimal config so `supabase functions deploy build-game` picks up the right settings.
+# `supabase link` (which you run yourself, see SETUP.md) fills in the project ref.
+
+[functions.build-game]
+# The browser calls this function with the anon/publishable key and there are no user
+# accounts, so JWT verification is off. Class prototype only.
+verify_jwt = false
