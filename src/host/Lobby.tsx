@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Blob, IconArrow, IconCheck, IconPencil, Logo } from '../components/ui.tsx'
 import { patchRoom } from '../lib/api.ts'
 import type { HostScreenProps } from '../pages/Host.tsx'
-import { MAX_PLAYERS, MIN_PLAYERS } from '../shared/quiz.ts'
+import { MAX_PLAYERS, MIN_PLAYERS, quizComplete } from '../shared/quiz.ts'
 
 const AUTO_START_SECONDS = 10
 
@@ -13,7 +13,7 @@ export function Lobby({ state, room, act }: HostScreenProps) {
   const shownUrl = joinUrl.replace(/^https?:\/\//, '')
   const localOnly = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 
-  const doneCount = players.filter((p) => p.quiz_done).length
+  const doneCount = players.filter((p) => quizComplete(p, room.round)).length
   const enough = players.length >= MIN_PLAYERS
   const allDone = enough && doneCount === players.length
 
@@ -63,13 +63,13 @@ export function Lobby({ state, room, act }: HostScreenProps) {
         <ul className="player-grid">
           {slots.map((p, i) =>
             p ? (
-              <li key={p.id} className={`card player-card pop ${p.quiz_done ? 'is-done' : ''}`}>
+              <li key={p.id} className={`card player-card pop ${quizComplete(p, room.round) ? 'is-done' : ''}`}>
                 <Blob color={p.avatar} size={72} dim={!onlineIds.includes(p.id)} />
                 <div>
                   <p className="player-name">{p.name}</p>
-                  <p className={`player-status ${p.quiz_done ? 'done' : ''}`}>
-                    {p.quiz_done ? <IconCheck size={20} /> : <IconPencil size={20} />}
-                    {p.quiz_done ? 'Quiz done' : 'Taking quiz…'}
+                  <p className={`player-status ${quizComplete(p, room.round) ? 'done' : ''}`}>
+                    {quizComplete(p, room.round) ? <IconCheck size={20} /> : <IconPencil size={20} />}
+                    {quizComplete(p, room.round) ? 'Quiz done' : 'Taking quiz…'}
                   </p>
                 </div>
               </li>

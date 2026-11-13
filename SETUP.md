@@ -23,12 +23,13 @@ the Supabase CLI (`supabase --version`; install with `brew install supabase/tap/
 Easiest way:
 
 1. In the dashboard, open **SQL Editor > New query**.
-2. Paste the whole contents of `supabase/migrations/0001_init.sql`.
-3. Click **Run**. It should say "Success. No rows returned".
+2. For a new database, run `supabase/migrations/0001_init.sql` first.
+3. Run `supabase/migrations/20261113012216_quiz_variety.sql` to add the three-answer quiz and replay resets. For an existing database, start with this migration.
+4. Run each migration once, in filename order.
 
 Or with the CLI, after step 3's `login` and `link`: `supabase db push`.
 
-Run it only once. To start over, delete the six tables (**Table Editor**) and run it again.
+Apply the quiz migration before publishing the updated frontend. Existing voice answers stay available with their original question. Redeploy `build-game` after syncing the updated shared files so it receives all three answers and the spot matching tags.
 
 ## 3. Link the CLI to the project
 

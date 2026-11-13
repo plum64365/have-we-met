@@ -14,7 +14,7 @@ Two things to know first:
 ## Part 0: no backend at all (2 minutes)
 
 ```bash
-npm run test:logic     # 25 checks on the game rules and the backup content
+npm run test:logic     # 31 checks on quiz rotation, matching, game rules and backup content
 npm run dev            # then open http://localhost:5173/preview
 ```
 
@@ -31,7 +31,7 @@ it the host builds the backup content after a pause of a second or two.
    **Expect:** a card for each player appears on the host screen within a second, saying
    "Taking quiz…".
 4. Try to reuse a name. **Expect:** "Someone already took that name."
-5. Finish the quiz in each window (pick 3 to 5 interests, type or skip the voice answer,
+5. Finish the quiz in each window (pick 3 to 5 interests, speak, type, or pass on each of three questions,
    five this-or-that picks, Finish).
    **Expect:** each card flips to "Quiz done". When the last one finishes, the host shows
    "Starting in 10". Click **Cancel** once and check it stops, then click **Everyone's in**.
@@ -53,13 +53,14 @@ it the host builds the backup content after a pause of a second or two.
     **Expect:** the "answers first" name changes each question. Phones show "Phones away!".
 14. **Skip to next game**. **Expect:** the hangout screen.
 15. **Play again**. **Expect:** back in the lobby with the same players and code, all
-    marked "Quiz done", and the countdown starts.
+    taking a fresh quiz. Interests carry over, the speaking questions and this-or-that
+    pairs rotate, and the countdown waits for everyone to finish.
 
 ### Refresh checks
 
 Start another game and, at each of these points, reload the host tab and one player tab:
 
-- [ ] lobby, part-way through the quiz (the player returns to the same quiz step)
+- [ ] lobby, after saving the first speaking answer (the player returns to the second question, and Back shows the saved answer)
 - [ ] "Building your game…"
 - [ ] common ground
 - [ ] a PHONES AWAY / PHONES OUT screen

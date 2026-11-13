@@ -160,7 +160,7 @@ function PhonePreview({ screen }: { screen: string }) {
         <header className="phone-top">
           <Logo small />
         </header>
-        <Quiz player={me} />
+        <Quiz player={me} round={1} />
       </main>
     )
   }

@@ -7,6 +7,8 @@ export interface ValidateContext {
   aliases?: Record<string, string>
   /** Valid spot ids, best first. An unknown spot_id is replaced by the first one. */
   spotIds: string[]
+  /** Preferred, grounded recommendation for generated content and invalid spot repairs. */
+  preferredHangout?: GameContent['hangout']
 }
 
 export type ValidateResult = { ok: true; content: GameContent } | { ok: false; error: string }
@@ -72,6 +74,9 @@ export function validateContent(raw: unknown, ctx: ValidateContext): ValidateRes
   if (new Set(items.map((i) => i.toLowerCase())).size !== 8) {
     return { ok: false, error: 'tierlist.items has duplicates' }
   }
+  if (items.some((item) => item.split(/\s+/).length > 3)) {
+    return { ok: false, error: 'tierlist.items must be 1 to 3 words each' }
+  }
   const reason = text(tl.reason, 120) ?? 'Picked for this group'
 
   if (!Array.isArray(raw.wit) || raw.wit.length === 0) return { ok: false, error: 'wit needs at least 1 prompt' }
@@ -91,11 +96,15 @@ export function validateContent(raw: unknown, ctx: ValidateContext): ValidateRes
   const deep = textList(rt.deep, 3, 3, 180)
   if (!light || !real || !deep) return { ok: false, error: 'realtalk needs 3 questions each for light, real and deep' }
 
+  if (new Set([...light, ...real, ...deep].map((q) => q.toLowerCase())).size !== 9) {
+    return { ok: false, error: 'realtalk questions must be distinct' }
+  }
+
   const h = raw.hangout
   if (!isRecord(h)) return { ok: false, error: 'hangout is missing' }
   const activity = text(h.activity, 140)
   if (!activity) return { ok: false, error: 'hangout.activity is empty' }
-  const why = textList(h.why, 1, 3, 48)
+  const why = textList(h.why, 2, 3, 48)
   if (!why) return { ok: false, error: 'hangout.why needs 2-3 short chips' }
   let spotId = text(h.spot_id, 60) ?? ''
   if (!ctx.spotIds.includes(spotId)) {
@@ -103,14 +112,19 @@ export function validateContent(raw: unknown, ctx: ValidateContext): ValidateRes
     spotId = ctx.spotIds[0]
   }
 
-  const funFacts = textList(raw.fun_facts, 1, 3, 100)
+  const funFacts = textList(raw.fun_facts, 2, 3, 100)
   if (!funFacts) return { ok: false, error: 'fun_facts needs 2-3 lines' }
+
+  // Replacing only the id would leave an activity and chips describing another spot.
+  const hangout = ctx.preferredHangout
+    ? { ...ctx.preferredHangout, activity: h.spot_id === ctx.preferredHangout.spot_id ? activity : ctx.preferredHangout.activity }
+    : { activity, spot_id: spotId, why }
 
   const content: GameContent = {
     tierlist: { topic, reason, items },
     wit,
     realtalk: { light, real, deep },
-    hangout: { activity, spot_id: spotId, why },
+    hangout,
     fun_facts: funFacts,
   }
 

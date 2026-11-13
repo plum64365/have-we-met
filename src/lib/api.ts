@@ -89,6 +89,14 @@ export async function updatePlayer(playerId: string, patch: Partial<PlayerRow>):
   if (error) throw new Error(error.message)
 }
 
+/** A delayed save from an earlier game must never overwrite the new round's quiz. */
+export async function updateQuizPlayer(playerId: string, round: number, patch: Partial<PlayerRow>): Promise<void> {
+  const { data, error } = await supabase.from('players').update(patch)
+    .eq('id', playerId).eq('quiz_round', round).select('id')
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('The quiz has moved to a new round. Refresh to continue.')
+}
+
 export async function removePlayer(playerId: string): Promise<void> {
   const { error } = await supabase.from('players').delete().eq('id', playerId)
   if (error) throw new Error(error.message)

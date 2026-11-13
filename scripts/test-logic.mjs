@@ -7,7 +7,10 @@ import { buildBackupContent, fitWitCount } from '../src/shared/backup.ts'
 import { averageLocation, estimateMinutes, rankSpots } from '../src/shared/geo.ts'
 import { eligibleVoters, jumpTo, nextStep, skipGameStep, skipPromptStep } from '../src/shared/machine.ts'
 import { aiNames, funFacts, groupProfile, interestCounts, strongestPairs } from '../src/shared/profile.ts'
-import { INTERESTS } from '../src/shared/quiz.ts'
+import { hangoutForSpot, matchingPlayers, rankHangoutSpots } from '../src/shared/hangout.ts'
+import { userPrompt } from '../src/shared/prompts.ts'
+import { VOICE_QUESTIONS } from '../src/shared/question-bank.ts'
+import { INTERESTS, quizComplete, quizForRound, voiceAnswersFor } from '../src/shared/quiz.ts'
 import { validateContent } from '../src/shared/validate.ts'
 
 const load = (file) => JSON.parse(readFileSync(new URL(`../src/data/${file}`, import.meta.url), 'utf8'))
@@ -185,7 +188,74 @@ test('location: needs half the players, ranks nearest first', () => {
   const ranked = rankSpots(SPOTS, shores)
   assert.equal(ranked[0].id, 'la-jolla-shores')
   assert.equal(estimateMinutes(shores, ranked[0]) % 5, 0)
-  assert.deepEqual(rankSpots(SPOTS, null).map((s) => s.id), SPOTS.map((s) => s.id))
+  assert.deepEqual(rankSpots(SPOTS, null).map((s) => s.minutes), SPOTS.map((s) => s.minutes).sort((a, b) => a - b))
+})
+
+console.log('Quiz variety and grounded generation')
+test('all players get stable questions and six rounds exhaust each speaking pool before repeating', () => {
+  const rounds = Array.from({ length: 6 }, (_, i) => quizForRound('same-room', i + 1))
+  assert.deepEqual(rounds[0], quizForRound('same-room', 1))
+  for (let category = 0; category < 3; category++) {
+    assert.equal(new Set(rounds.map((q) => q.voice[category].id)).size, 6)
+  }
+  assert.equal(new Set(rounds.slice(0, 3).flatMap((q) => q.thisOrThat.map((t) => t.key))).size, 15)
+  assert.equal(new Set(VOICE_QUESTIONS.map((q) => q.id)).size, VOICE_QUESTIONS.length)
+})
+test('legacy voice answers keep their question and passes differ from unanswered questions', () => {
+  assert.equal(voiceAnswersFor({ voice_text: null }).length, 0)
+  assert.equal(voiceAnswersFor({ voice_text: '' })[0].answer, '')
+  const player = makePlayers(2)[1]
+  const profile = groupProfile([player])
+  assert.match(profile.players[0].voice_answers[0].question, /into lately/)
+  assert.equal(profile.players[0].voice_answers[0].answer, player.voice_text)
+  assert.equal(quizComplete({ ...player, quiz_round: 1 }, 2), false)
+})
+test('hypothetical voice answers reach the generator with their original question', () => {
+  const player = { ...makePlayers(2)[0], voice_answers: [
+    { question_id: 'free-trip', question: 'Where would you go on a free trip?', answer: 'Japan, to learn about food' },
+    { question_id: 'into-lately', question: 'What are you into?', answer: '' },
+  ] }
+  const profile = groupProfile([player])
+  assert.equal(profile.players[0].voice_answers.length, 1)
+  assert.equal(profile.players[0].voice_answers[0].question_id, 'free-trip')
+  assert.equal('into_lately' in profile.players[0], false)
+  const prompt = userPrompt([player], SPOTS, 2, (p) => p.name)
+  assert.match(prompt, /Where would you go on a free trip/)
+  assert.match(prompt, /good_for/)
+  assert.match(prompt, /preferred_hangout/)
+  assert.doesNotMatch(prompt, /"lat"|"lng"/)
+})
+test('hangout ranking counts distinct people and uses proximity to break ties', () => {
+  const players = makePlayers(3).map((p, i) => ({ ...p, interests: i === 0 ? ['Food', 'Cooking', 'Anime'] : ['Tech'] }))
+  const nearby = rankSpots(SPOTS, null)
+  const ranked = rankHangoutSpots(players, nearby)
+  const convoy = SPOTS.find((s) => s.id === 'convoy-street')
+  assert.equal(matchingPlayers(players, convoy), 1)
+  assert.equal(ranked[0].id, 'campus-game-lounge')
+  assert.equal(matchingPlayers(players, ranked[0]), 2)
+  assert.deepEqual(rankHangoutSpots(players.map((p) => ({ ...p, interests: [] })), SPOTS), SPOTS)
+})
+test('AI repairs replace mismatched activities and chips with the preferred recommendation', () => {
+  const players = makePlayers(3)
+  const ranked = rankHangoutSpots(players, SPOTS)
+  const preferred = hangoutForSpot(players, ranked[0])
+  const content = buildBackupContent(players, BACKUP, SPOTS, { witCount: 2 })
+  for (const spotId of ['made-up-place', SPOTS.find((s) => s.id !== preferred.spot_id).id]) {
+    const checked = validateContent({ ...content, hangout: { activity: 'Cook in this cafe kitchen', spot_id: spotId, why: ['Invented trait', 'Invented price'] } }, { ...ctxFor(players), preferredHangout: preferred })
+    assert.equal(checked.ok, true)
+    assert.deepEqual(checked.content.hangout, preferred)
+  }
+  assert.deepEqual(content.hangout, preferred)
+  for (const spot of SPOTS) {
+    assert.ok(spot.activity.length <= 140, `${spot.id} activity is too long`)
+    for (const chip of hangoutForSpot(players, spot).why) assert.ok(chip.split(/\s+/).length <= 5, chip)
+  }
+})
+test('the validator rejects duplicate Real Talk questions and overly long tier items', () => {
+  const players = makePlayers(3)
+  const content = buildBackupContent(players, BACKUP, SPOTS, { witCount: 2 })
+  assert.equal(validateContent({ ...content, realtalk: { ...content.realtalk, deep: content.realtalk.light } }, ctxFor(players)).ok, false)
+  assert.equal(validateContent({ ...content, tierlist: { ...content.tierlist, items: ['one two three four', ...content.tierlist.items.slice(1)] } }, ctxFor(players)).ok, false)
 })
 
 console.log('Phase machine')

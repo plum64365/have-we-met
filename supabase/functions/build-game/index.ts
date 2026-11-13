@@ -19,7 +19,9 @@ import backupJson from '../_shared/backup-content.json' with { type: 'json' }
 import spotsJson from '../_shared/spots.json' with { type: 'json' }
 import { buildBackupContent, fitWitCount } from '../_shared/backup.ts'
 import { averageLocation, estimateMinutes, rankSpots } from '../_shared/geo.ts'
-import { aiNames, groupProfile } from '../_shared/profile.ts'
+import { aiNames } from '../_shared/profile.ts'
+import { SYSTEM_PROMPT, userPrompt } from '../_shared/prompts.ts'
+import { hangoutForSpot, rankHangoutSpots } from '../_shared/hangout.ts'
 import { MIN_PLAYERS, QUICK_PLAY_PROMPTS } from '../_shared/quiz.ts'
 import type { BackupContent, GameContent, PlayerRow, RoomRow, Spot } from '../_shared/types.ts'
 import { validateContent } from '../_shared/validate.ts'
@@ -48,19 +50,6 @@ function json(body: unknown, status = 200): Response {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   })
 }
-
-const SYSTEM_PROMPT = `You write the content for "Have We Met?", a party icebreaker for 2 to 6 college students who have just met. They play three short games together in a classroom: Tier List, Wit Dispute and Real Talk.
-
-Rules you must follow:
-- Tone: playful and PG. Friendly, never mean. This is shown on a projector in a class.
-- No jokes about appearance, bodies, identity (race, gender, sexuality, religion, nationality, disability), money, grades, dating history, or anything sensitive. Never single a player out for a put-down.
-- Tier List: one topic the whole group can argue about out loud, tied to their shared interests, with exactly 8 short items (1 to 3 words each) that are different enough to rank.
-- Wit Dispute: each prompt sets up a funny short answer (60 characters or fewer) and references the players' shared interests or this-or-that picks. A prompt may mention a player by name only in a kind way. Each prompt is assigned to exactly 2 different players. Spread players evenly across prompts.
-- Real Talk: questions go from easy to personal, never invasive. "light" is small talk with a spark, "real" is about experiences and opinions, "deep" is reflective but safe to answer in front of classmates. No questions about trauma, family conflict, romance or health.
-- Hangout: one concrete, cheap activity this group would enjoy, at a spot from the list. spot_id must be copied exactly from the spots list. The list is ordered with the best located spots first, so prefer earlier ones when they fit.
-- fun_facts and hangout.why must be true according to the group data. Do not invent facts about players.
-- Use player names exactly as they are written in the data.
-- Reply with JSON only, in exactly the requested shape. No extra keys, no markdown.`
 
 /** JSON Schema for the reply. The counts are also checked by validateContent afterwards. */
 function responseSchema() {
@@ -97,32 +86,6 @@ function responseSchema() {
     },
     required: ['tierlist', 'wit', 'realtalk', 'hangout', 'fun_facts'],
   }
-}
-
-function userPrompt(players: PlayerRow[], rankedSpots: Spot[], witCount: number, nameOf: (p: PlayerRow) => string): string {
-  // Only names, interests, picks and a short voice snippet go to the model. Never location.
-  const profile = groupProfile(players, (p) => nameOf(p as PlayerRow))
-  const spots = rankedSpots.map((s) => ({ id: s.id, name: s.name, category: s.category }))
-  return `Group data:
-${JSON.stringify(profile, null, 1)}
-
-Spots (choose hangout.spot_id from these ids):
-${JSON.stringify(spots, null, 1)}
-
-Write the game as JSON in exactly this shape:
-{
-  "tierlist": { "topic": "", "reason": "", "items": ["exactly 8"] },
-  "wit": [ { "prompt": "", "players": ["name", "name"] } ],
-  "realtalk": { "light": ["3"], "real": ["3"], "deep": ["3"] },
-  "hangout": { "activity": "", "spot_id": "", "why": ["2-3 short chips"] },
-  "fun_facts": ["2-3"]
-}
-
-Details:
-- tierlist.reason: one short line on why this topic fits, using real counts, like "5 of you chose Food + 4 are night owls".
-- wit: exactly ${witCount} prompts.
-- hangout.why: 2 or 3 chips of 5 words or fewer, like "5 of you love food".
-- fun_facts: 2 or 3 short overlaps, like "4 of you are night owls" or "Maya + Dev both mentioned Haikyuu".`
 }
 
 /** Calls Gemini once and returns the parsed JSON. Throws on any failure, including the timeout. */
@@ -216,7 +179,7 @@ Deno.serve(async (req) => {
     const { data: locationRows } = await db.from('player_locations').select('lat, lng').eq('room_id', roomId)
     const locations = (locationRows ?? []).map((l) => ({ lat: Number(l.lat), lng: Number(l.lng) }))
     const center = averageLocation(locations, players.length)
-    const rankedSpots = rankSpots(SPOTS, center)
+    const rankedSpots = rankHangoutSpots(players, rankSpots(SPOTS, center))
 
     const witCount = room.quick_play ? QUICK_PLAY_PROMPTS : Math.max(MIN_PLAYERS, players.length)
     const { nameOf, aliases } = aiNames(players)
@@ -236,6 +199,7 @@ Deno.serve(async (req) => {
           playerNames: players.map((p) => p.name),
           aliases,
           spotIds: rankedSpots.map((s) => s.id),
+          preferredHangout: rankedSpots[0] ? hangoutForSpot(players, rankedSpots[0]) : undefined,
         })
         if (!checked.ok) throw new Error(`AI content failed validation: ${checked.error}`)
         content = fitWitCount(checked.content, players, BACKUP, witCount, room.round - 1)
@@ -265,6 +229,7 @@ Deno.serve(async (req) => {
       .update({ content, content_source: source, build_status: 'ready' })
       .eq('id', roomId)
       .eq('build_status', 'building')
+      .eq('round', room.round)
       .select('id')
     if (saveError) return json({ ok: false, error: `Could not save the content: ${saveError.message}` }, 500)
 

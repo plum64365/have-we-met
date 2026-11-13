@@ -1,65 +1,104 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconCheck, IconEyes, IconMic, IconPin } from '../components/ui.tsx'
 import { useSpeech } from '../hooks/useSpeech.ts'
-import { setPlayerLocation, updatePlayer } from '../lib/api.ts'
-import { INTERESTS, MAX_INTERESTS, MIN_INTERESTS, THIS_OR_THAT, VOICE_QUESTION } from '../shared/quiz.ts'
+import { setPlayerLocation, updateQuizPlayer } from '../lib/api.ts'
+import { INTERESTS, MAX_INTERESTS, MIN_INTERESTS, quizComplete, quizForRound, voiceAnswersFor } from '../shared/quiz.ts'
+import type { QuizSelection, ThisOrThat } from '../shared/quiz.ts'
+import type { VoiceQuestion } from '../shared/question-bank.ts'
 import type { PlayerRow } from '../shared/types.ts'
 import { Message } from './Message.tsx'
 
-const STEPS = ['Interests', 'Voice', 'This or that', 'Location'] as const
+const STEPS = ['Interests', 'Voice 1', 'Voice 2', 'Voice 3', 'This or that', 'Location'] as const
 
-/** Where a player should resume after a refresh: the first step they have not saved yet. */
-function resumeStep(p: PlayerRow): number {
-  if (p.interests.length < MIN_INTERESTS) return 0
-  if (p.voice_text === null) return 1
-  if (THIS_OR_THAT.some((q) => !p.this_or_that[q.key])) return 2
-  return 3
+/** Resume at the first question that has not been answered or explicitly passed. */
+function resumeStep(player: PlayerRow, questions: QuizSelection): number {
+  if (player.interests.length < MIN_INTERESTS) return 0
+  const answers = voiceAnswersFor(player)
+  const missing = questions.voice.findIndex((q) => !answers.some((a) => a.question_id === q.id))
+  if (missing >= 0) return missing + 1
+  if (questions.thisOrThat.some((q) => !player.this_or_that[q.key])) return 4
+  return 5
 }
 
-export function Quiz({ player }: { player: PlayerRow }) {
-  const [step, setStep] = useState(() => resumeStep(player))
+export function Quiz({ player, round }: { player: PlayerRow; round: number }) {
+  const questions = quizForRound(player.room_id, round)
+  const [draft, setDraft] = useState(player)
+  const [step, setStep] = useState(() => resumeStep(player, questions))
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const pending = useRef(false)
 
-  // Each step saves to the player row before moving on, so nothing is lost on a refresh.
   const save = useCallback(
     async (patch: Partial<PlayerRow>, nextStep: number) => {
+      if (pending.current) return
+      pending.current = true
+      setSaving(true)
       try {
         setError(null)
-        await updatePlayer(player.id, patch)
+        await updateQuizPlayer(player.id, round, patch)
+        setDraft((p) => ({ ...p, ...patch }))
         setStep(nextStep)
       } catch {
         setError('That did not save. Check your connection and try again.')
+      } finally {
+        pending.current = false
+        setSaving(false)
       }
     },
-    [player.id],
+    [player.id, round],
   )
 
-  if (player.quiz_done) {
+  if (quizComplete(player, round) || quizComplete(draft, round)) {
     return <Message icon={<IconEyes size={72} />} title="You're in!" body="Look up at the big screen." />
   }
 
+  const question = questions.voice[step - 1]
+  const answerVoice = (answer: string) => {
+    const previous = voiceAnswersFor(draft).filter((a) =>
+      a.question_id !== question.id && questions.voice.some((q) => q.id === a.question_id),
+    )
+    return save({
+      voice_answers: [...previous, { question_id: question.id, question: question.prompt, answer }],
+    }, step + 1)
+  }
   return (
-    <section className="quiz">
+    <section className="quiz" aria-busy={saving}>
       <ol className="progress" aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}>
         {STEPS.map((label, i) => (
           <li key={label} className={i < step ? 'past' : i === step ? 'on' : ''} />
         ))}
       </ol>
-
-      {step === 0 && <InterestsStep player={player} onNext={(interests) => save({ interests }, 1)} />}
-      {step === 1 && (
-        <VoiceStep player={player} onNext={(voice_text) => save({ voice_text }, 2)} onBack={() => setStep(0)} />
-      )}
-      {step === 2 && (
-        <ThisOrThatStep player={player} onNext={(this_or_that) => save({ this_or_that }, 3)} onBack={() => setStep(1)} />
-      )}
-      {step === 3 && <LocationStep player={player} onBack={() => setStep(2)} onError={setError} />}
-
-      {error && (
-        <p className="notice" role="alert">
-          {error}
-        </p>
-      )}
+      <fieldset className="quiz-fields" disabled={saving}>
+        {step === 0 && <InterestsStep player={draft} onNext={(interests) => save({ interests }, 1)} />}
+        {step >= 1 && step <= 3 && (
+          <VoiceStep
+            key={question.id}
+            question={question}
+            number={step}
+            answer={voiceAnswersFor(draft).find((a) => a.question_id === question.id)?.answer ?? ''}
+            onNext={answerVoice}
+            onBack={() => setStep(step - 1)}
+          />
+        )}
+        {step === 4 && (
+          <ThisOrThatStep
+            player={draft}
+            questions={questions.thisOrThat}
+            onNext={(this_or_that) => save({ this_or_that }, 5)}
+            onBack={() => setStep(3)}
+          />
+        )}
+        {step === 5 && (
+          <LocationStep
+            player={draft}
+            onBack={() => setStep(4)}
+            onError={setError}
+            onComplete={() => save({ quiz_done: true }, 5)}
+          />
+        )}
+      </fieldset>
+      {saving && <p className="hint" role="status">Saving…</p>}
+      {error && <p className="notice" role="alert">{error}</p>}
     </section>
   )
 }
@@ -103,8 +142,14 @@ function InterestsStep({ player, onNext }: { player: PlayerRow; onNext: (interes
   )
 }
 
-function VoiceStep({ player, onNext, onBack }: { player: PlayerRow; onNext: (text: string) => void; onBack: () => void }) {
-  const [text, setText] = useState(player.voice_text ?? '')
+function VoiceStep({ question, number, answer, onNext, onBack }: {
+  question: VoiceQuestion
+  number: number
+  answer: string
+  onNext: (text: string) => void
+  onBack: () => void
+}) {
+  const [text, setText] = useState(answer)
   const [interim, setInterim] = useState('')
   const [typing, setTyping] = useState(false)
   const base = useRef('')
@@ -128,7 +173,8 @@ function VoiceStep({ player, onNext, onBack }: { player: PlayerRow; onNext: (tex
 
   return (
     <div className="card pad step">
-      <h1>{VOICE_QUESTION}</h1>
+      <p className="hint">Speaking question {number} of 3 · Speak, type, or pass</p>
+      <h1>{question.prompt}</h1>
 
       {!useTyping && (
         <>
@@ -204,21 +250,23 @@ function VoiceStep({ player, onNext, onBack }: { player: PlayerRow; onNext: (tex
 
 function ThisOrThatStep({
   player,
+  questions,
   onNext,
   onBack,
 }: {
+  questions: ThisOrThat[]
   player: PlayerRow
   onNext: (picks: Record<string, 'a' | 'b'>) => void
   onBack: () => void
 }) {
   const [picks, setPicks] = useState<Record<string, 'a' | 'b'>>(player.this_or_that ?? {})
-  const complete = THIS_OR_THAT.every((q) => picks[q.key])
+  const complete = questions.every((q) => picks[q.key])
 
   return (
     <div className="card pad step">
       <h1>This or that?</h1>
       <p className="hint">Go with your gut.</p>
-      {THIS_OR_THAT.map((q) => (
+      {questions.map((q) => (
         <fieldset className="tot" key={q.key}>
           <legend className="sr-only">
             {q.a.label} or {q.b.label}
@@ -248,7 +296,12 @@ function ThisOrThatStep({
 
 type Coords = { lat: number; lng: number }
 
-function LocationStep({ player, onBack, onError }: { player: PlayerRow; onBack: () => void; onError: (m: string | null) => void }) {
+function LocationStep({ player, onBack, onError, onComplete }: {
+  player: PlayerRow
+  onBack: () => void
+  onError: (m: string | null) => void
+  onComplete: () => Promise<void>
+}) {
   const [share, setShare] = useState(false)
   const [coords, setCoords] = useState<Coords | null>(null)
   const [status, setStatus] = useState<'idle' | 'asking' | 'ok' | 'failed'>('idle')
@@ -290,7 +343,8 @@ function LocationStep({ player, onBack, onError }: { player: PlayerRow; onBack: 
       } else if (player.shared_location) {
         await setPlayerLocation(player.id, null, null).catch(() => {})
       }
-      await updatePlayer(player.id, { quiz_done: true })
+      await onComplete()
+      setBusy(false)
     } catch {
       onError('That did not save. Check your connection and try again.')
       setBusy(false)

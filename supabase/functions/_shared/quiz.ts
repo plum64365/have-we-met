@@ -1,4 +1,6 @@
-import type { AvatarColor } from './types.ts'
+import type { AvatarColor, PlayerRow, VoiceAnswer } from './types.ts'
+import { VOICE_QUESTIONS } from './question-bank.ts'
+import type { VoiceQuestion } from './question-bank.ts'
 
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 6
@@ -64,4 +66,84 @@ export const THIS_OR_THAT: ThisOrThat[] = [
     a: { label: 'Plan it', group: 'like to plan it' },
     b: { label: 'Wing it', group: 'like to wing it' },
   },
+  {
+    key: 'novelty',
+    a: { label: 'Revisit a favorite', group: 'would revisit a favorite' },
+    b: { label: 'Try a wildcard', group: 'would try a wildcard' },
+  },
+  {
+    key: 'party-role',
+    a: { label: 'Make the playlist', group: 'would make the playlist' },
+    b: { label: 'Pick the snacks', group: 'would pick the snacks' },
+  },
+  {
+    key: 'learning',
+    a: { label: 'Watch first', group: 'learn by watching first' },
+    b: { label: 'Jump in and try', group: 'learn by jumping in' },
+  },
+  {
+    key: 'games',
+    a: { label: 'One long game', group: 'prefer one long game' },
+    b: { label: 'Several short rounds', group: 'prefer several short rounds' },
+  },
+  {
+    key: 'exploring',
+    a: { label: 'Explore one place', group: 'would explore one place deeply' },
+    b: { label: 'Make several stops', group: 'would make several stops' },
+  },
+  {
+    key: 'creating',
+    a: { label: 'Make something', group: 'would make something together' },
+    b: { label: 'Solve something', group: 'would solve something together' },
+  },
+  {
+    key: 'food-adventure',
+    a: { label: 'Favorite order', group: 'would get their favorite order' },
+    b: { label: 'Something new', group: 'would order something new' },
+  },
+  {
+    key: 'souvenir',
+    a: { label: 'Take a photo', group: 'would take a photo' },
+    b: { label: 'Keep a souvenir', group: 'would keep a souvenir' },
+  },
+  {
+    key: 'story-format',
+    a: { label: 'Read the story', group: 'prefer reading a story' },
+    b: { label: 'Watch the adaptation', group: 'prefer watching an adaptation' },
+  },
+  {
+    key: 'group-activity',
+    a: { label: 'Cooperate', group: 'would choose a cooperative game' },
+    b: { label: 'Friendly competition', group: 'would choose friendly competition' },
+  },
 ]
+
+export interface QuizSelection {
+  voice: VoiceQuestion[]
+  thisOrThat: ThisOrThat[]
+}
+
+/** Stable across devices and refreshes; each pool cycles before repeating a question. */
+export function quizForRound(roomId: string, round: number): QuizSelection {
+  let seed = 0
+  for (const char of roomId) seed = (Math.imul(seed, 31) + char.charCodeAt(0)) >>> 0
+  const offset = Math.max(0, round - 1)
+  const voice = (['everyday', 'story', 'hypothetical'] as const).map((category) => {
+    const pool = VOICE_QUESTIONS.filter((q) => q.category === category)
+    return pool[(seed % pool.length + offset) % pool.length]
+  })
+  const start = (seed % THIS_OR_THAT.length + offset * 5) % THIS_OR_THAT.length
+  const thisOrThat = Array.from({ length: 5 }, (_, i) => THIS_OR_THAT[(start + i) % THIS_OR_THAT.length])
+  return { voice, thisOrThat }
+}
+
+/** Preserve the original question when reading rows created before multiple answers. */
+export function voiceAnswersFor(player: Pick<PlayerRow, 'voice_text' | 'voice_answers'>): VoiceAnswer[] {
+  if (player.voice_answers?.length) return player.voice_answers
+  if (player.voice_text === null) return []
+  return [{ question_id: 'into-lately', question: VOICE_QUESTION, answer: player.voice_text }]
+}
+
+export function quizComplete(player: PlayerRow, round: number): boolean {
+  return player.quiz_done && (player.quiz_round ?? round) === round
+}

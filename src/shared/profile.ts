@@ -1,8 +1,8 @@
-import { INTERESTS, THIS_OR_THAT } from './quiz.ts'
+import { INTERESTS, THIS_OR_THAT, voiceAnswersFor } from './quiz.ts'
 import type { PlayerRow } from './types.ts'
 
 /** The parts of a player that the content logic needs. */
-export type PlayerLite = Pick<PlayerRow, 'id' | 'name' | 'interests' | 'this_or_that' | 'voice_text'>
+export type PlayerLite = Pick<PlayerRow, 'id' | 'name' | 'interests' | 'this_or_that' | 'voice_text' | 'voice_answers'>
 
 export interface InterestCount {
   interest: string
@@ -160,7 +160,11 @@ export function groupProfile(players: PlayerLite[], aiName: (p: PlayerLite) => s
       picks: THIS_OR_THAT.filter((q) => p.this_or_that?.[q.key]).map(
         (q) => q[p.this_or_that[q.key]].label,
       ),
-      into_lately: (p.voice_text ?? '').trim().slice(0, 140),
+      voice_answers: voiceAnswersFor(p).filter((v) => v.answer.trim()).map((v) => ({
+        question_id: v.question_id,
+        question: v.question,
+        answer: v.answer.trim().slice(0, 140),
+      })),
     })),
     interest_counts: interestCounts(players),
     this_or_that: thisOrThatSplits(players).map((s) => ({

@@ -87,11 +87,20 @@ export interface PlayerRow {
   avatar: AvatarColor
   interests: string[]
   voice_text: string | null
+  /** Optional while reading legacy rows and fixtures. Empty answer means passed. */
+  voice_answers?: VoiceAnswer[]
+  quiz_round?: number
   this_or_that: Record<string, 'a' | 'b'>
   shared_location: boolean
   quiz_done: boolean
   joined_at: string
   last_seen: string
+}
+
+export interface VoiceAnswer {
+  question_id: string
+  question: string
+  answer: string
 }
 
 export interface WitAnswerRow {
@@ -128,8 +137,10 @@ export interface Spot {
   lng: number
   /** Approximate travel minutes from the middle of campus. */
   minutes: number
-  /** Interest categories this spot suits. Used by the backup builder. */
+  /** Interest categories used by AI and backup hangout matching. */
   good_for: string[]
+  /** Curated activity that can actually be done at this spot. */
+  activity?: string
   placeholder: boolean
 }
 

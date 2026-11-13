@@ -1,5 +1,7 @@
 import { biggestMajority, countPhrase, funFacts, interestCounts } from './profile.ts'
 import type { PlayerLite } from './profile.ts'
+import { hangoutForSpot, rankHangoutSpots } from './hangout.ts'
+import { REAL_TALK_QUESTIONS } from './question-bank.ts'
 import { REALTALK_LEVELS } from './types.ts'
 import type { BackupCategory, BackupContent, GameContent, Spot } from './types.ts'
 
@@ -92,15 +94,6 @@ export function fitWitCount(
   return { ...content, wit: padded }
 }
 
-/** Picks the first spot (in the order given) that suits the category, else the first spot. */
-export function pickSpot(spots: Spot[], interest: string, cat: BackupCategory): Spot | undefined {
-  return (
-    spots.find((s) => s.good_for.includes(interest)) ??
-    spots.find((s) => cat.hangout.spot_categories.includes(s.category)) ??
-    spots[0]
-  )
-}
-
 /**
  * Builds a whole game with no AI. `spots` should already be ranked nearest-first when the
  * group shared a location. Works for any group, including players who skipped the quiz.
@@ -129,24 +122,19 @@ export function buildBackupContent(
     // One question from each top interest, then general ones, three per level.
     const pool = unique([
       ...cats.slice(0, 2).flatMap((c) => rotate(c.cat.realtalk[level], seed).slice(0, 1)),
+      ...rotate(REAL_TALK_QUESTIONS[level], seed),
       ...rotate(backup.general.realtalk[level], seed),
     ])
     realtalk[level] = pool.slice(0, 3)
   }
 
-  const spot = pickSpot(spots, top.interest, top.cat)
-  const why: string[] = []
-  if (topCount > 0) why.push(`${countPhrase(topCount, total)} love ${top.interest.toLowerCase()}`)
-  if (majority) why.push(`${countPhrase(majority.count, total)} ${majority.group}`)
-  if (counts[1] && counts[1].count >= 2) why.push(`${countPhrase(counts[1].count, total)} picked ${counts[1].interest}`)
-  if (why.length < 2) why.push('Easy to get to from campus')
-  if (why.length < 2) why.push('Low pressure, easy to talk')
+  const spot = rankHangoutSpots(players, spots)[0]
 
   return {
     tierlist: { topic: top.cat.tierlist.topic, reason, items: top.cat.tierlist.items.slice(0, 8) },
     wit: backupWit(players, backup, options.witCount, seed),
     realtalk,
-    hangout: { activity: top.cat.hangout.activity, spot_id: spot?.id ?? '', why: why.slice(0, 3) },
+    hangout: spot ? hangoutForSpot(players, spot) : { activity: 'Take turns sharing an activity you would like to try together.', spot_id: '', why: ['Keep the conversation going', 'Choose your next activity'] },
     fun_facts: funFacts(players),
   }
 }

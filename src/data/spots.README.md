@@ -13,7 +13,8 @@ Before presenting, for each spot:
 
 Keep each `id` short, lowercase and unique. The AI must answer with one of these ids.
 `category` is free text shown on the hangout screen. `good_for` lists the quiz interests a
-spot suits, which the no-AI backup uses to choose.
+spot suits. The AI and backup rank spots by the number of distinct players with a matching
+interest, using proximity to break ties. `activity` supplies a concrete plan at that spot.
 
 After editing, run `npm run sync` (it also runs automatically before `npm run dev` and
 `npm run build`) and redeploy the Edge Function so it gets the new list.

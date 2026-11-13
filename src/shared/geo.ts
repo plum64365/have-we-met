@@ -25,9 +25,9 @@ export function averageLocation(shared: LatLng[], playerCount: number): LatLng |
   return { lat, lng }
 }
 
-/** Spots sorted nearest first. With no centre, the file order is kept. */
+/** Spots sorted nearest first. With no centre, use the campus travel estimates. */
 export function rankSpots(spots: Spot[], center: LatLng | null): Spot[] {
-  if (!center) return [...spots]
+  if (!center) return [...spots].sort((x, y) => x.minutes - y.minutes)
   return [...spots].sort((x, y) => haversineKm(center, x) - haversineKm(center, y))
 }
 

@@ -4,7 +4,7 @@ A multiplayer icebreaker game for people who have just met, built as a prototype
 COGS 123 (social computing) at UCSD.
 
 One screen on a projector runs the game. Two to six players join on their phones by
-scanning a QR code, take a 90-second quiz, and then play three short games that are
+scanning a QR code, take a short quiz, and then play three short games that are
 generated from what the group has in common:
 
 1. **Tier List** (phones away): rank 8 things together, out loud.
@@ -97,11 +97,18 @@ supabase/functions/_shared/            Generated copy of src/shared + src/data. 
 ## Content and the AI
 
 When the game starts, `build-game` sends Gemini a group profile (first names, interests,
-this-or-that picks, a short snippet of each voice answer) and asks for all three games as
+this-or-that picks, and three short answers with their original questions) and asks for all three games as
 JSON. The reply is validated. If the call fails, takes more than 15 seconds or returns
 something invalid, the content is built from `src/data/backup-content.json` instead. If the
 function itself cannot be reached, the host screen builds the same backup content in the
 browser. **The whole demo works with zero AI.**
+
+Each room gets one everyday, one story, and one hypothetical speaking question from
+`src/shared/question-bank.ts`, plus five rotating this-or-that pairs. Players can speak,
+type, or pass. Question sets are stable on refresh and rotate on Play Again, which resets
+answers while retaining interests. The generator uses suitable voice details for at least
+one Real Talk question. Both content paths choose hangout spots by distinct players matched
+to `good_for`, with proximity breaking ties. Activities and reasons stay tied to that spot.
 
 ## Privacy notes
 
