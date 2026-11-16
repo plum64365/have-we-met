@@ -21,13 +21,15 @@ export function Hangout({ state, room, act }: HostScreenProps) {
       <header className="host-head">
         <div>
           <p className="kicker">You’ve met. Make the next plan.</p>
-          <h1 className="host-h1">Your hangout idea</h1>
+          <h1 className="host-h1">
+            {content.campus_task ? 'Your first campus adventure' : 'Your hangout idea'}
+          </h1>
         </div>
         <Logo small />
       </header>
 
       <div className="hang-body">
-        <section className="card pad hang-main tilt-l">
+        <section className={`card pad hang-main tilt-l ${content.campus_task ? 'hang-campus' : ''}`}>
           <p className="hang-activity">{content.hangout.activity}</p>
           {spot && (
             <p className="hang-spot">
@@ -50,11 +52,23 @@ export function Hangout({ state, room, act }: HostScreenProps) {
               </li>
             ))}
           </ul>
+          {content.campus_task && (
+            <div className="campus-ending">
+              <ol>
+                {content.campus_task.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+              <p>Scan the room code to save your checklist, pick a time, and return with your story.</p>
+            </div>
+          )}
         </section>
 
         <section className="hang-pairs" aria-label="Strongest pairs">
           <h2 className="host-h2">Most in common</h2>
-          {pairs.length === 0 && <p className="host-sub">Opposites attract. You have plenty to talk about!</p>}
+          {pairs.length === 0 && (
+            <p className="host-sub">Opposites attract. You have plenty to talk about!</p>
+          )}
           {pairs.map((pair, i) => {
             const a = player(pair.a)
             const b = player(pair.b)
@@ -80,16 +94,23 @@ export function Hangout({ state, room, act }: HostScreenProps) {
           })}
           <div className="hang-connect card pad">
             <QRCodeSVG value={roomLink} size={110} marginSize={1} />
-            <div><p>Scan to plan, post a photo, and keep in touch.</p><strong>Room {room.code}</strong></div>
+            <div>
+              <p>Scan to plan, explore, and come back with a story.</p>
+              <strong>Room {room.code}</strong>
+            </div>
           </div>
-          <button className="btn btn-cyan" onClick={() => dialog.current?.showModal()}>Plan & share</button>
+          <button className="btn btn-cyan" onClick={() => dialog.current?.showModal()}>
+            Plan & share
+          </button>
           <button className="btn btn-big" onClick={act.again}>
             Play again
           </button>
         </section>
       </div>
       <dialog className="card community-dialog" ref={dialog} aria-label="Room planner and updates">
-        <button className="btn btn-white btn-small dialog-close" onClick={() => dialog.current?.close()}>Close</button>
+        <button className="btn btn-white btn-small dialog-close" onClick={() => dialog.current?.close()}>
+          Close
+        </button>
         <RoomCommunity room={room} players={state.players} editable />
       </dialog>
     </div>

@@ -8,6 +8,14 @@ import Play from './pages/Play.tsx'
 import Room from './pages/Room.tsx'
 import Wizard from './pages/Wizard.tsx'
 
+const Stories = lazy(() => import('./pages/Stories.tsx').then((module) => ({ default: module.Stories })))
+const StoryDetail = lazy(() =>
+  import('./pages/Stories.tsx').then((module) => ({ default: module.StoryDetail })),
+)
+const StoryEditor = lazy(() =>
+  import('./pages/Stories.tsx').then((module) => ({ default: module.StoryEditor })),
+)
+
 // Design preview with fake data. Dev server only: this import is dropped from production builds.
 const Preview = import.meta.env.DEV ? lazy(() => import('./pages/Preview.tsx')) : null
 
@@ -18,8 +26,9 @@ function NotConfigured() {
       <div className="card pad">
         <h2>Almost there</h2>
         <p>
-          The app is not connected to Supabase yet. Copy <code>.env.example</code> to <code>.env.local</code>, fill in{' '}
-          <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>, then restart <code>npm run dev</code>.
+          The app is not connected to Supabase yet. Copy <code>.env.example</code> to <code>.env.local</code>,
+          fill in <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>, then restart{' '}
+          <code>npm run dev</code>.
         </p>
         <p>The full steps are in SETUP.md.</p>
       </div>
@@ -35,19 +44,30 @@ export default function App() {
       </Suspense>
     )
   }
-  if (!isConfigured) return <NotConfigured />
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/host" element={<Host />} />
-        <Route path="/room/:code" element={<Room />} />
-        <Route path="/play" element={<Play />} />
-        <Route path="/play/:code" element={<Play />} />
-        {/* Not linked from anywhere: the teammate running the Wizard of Oz console types the URL. */}
-        <Route path="/wizard/:code" element={<Wizard />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense
+        fallback={
+          <main className="phone">
+            <Logo />
+            <p className="host-sub">Opening stories…</p>
+          </main>
+        }
+      >
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/stories" element={<Stories />} />
+          <Route path="/stories/write" element={<StoryEditor />} />
+          <Route path="/stories/:id" element={<StoryDetail />} />
+          <Route path="/host" element={isConfigured ? <Host /> : <NotConfigured />} />
+          <Route path="/room/:code" element={isConfigured ? <Room /> : <NotConfigured />} />
+          <Route path="/play" element={isConfigured ? <Play /> : <NotConfigured />} />
+          <Route path="/play/:code" element={isConfigured ? <Play /> : <NotConfigured />} />
+          {/* Not linked from anywhere: the teammate running the Wizard of Oz console types the URL. */}
+          <Route path="/wizard/:code" element={isConfigured ? <Wizard /> : <NotConfigured />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

@@ -12,6 +12,8 @@ import { userPrompt } from '../src/shared/prompts.ts'
 import { VOICE_QUESTIONS } from '../src/shared/question-bank.ts'
 import { INTERESTS, MAX_PLAYERS, realTalkQuestionsPerLevel, quizComplete, quizForRound, voiceAnswersFor } from '../src/shared/quiz.ts'
 import { calendarForPlan, inviteUrl } from '../src/shared/community.ts'
+import { contextualRoom } from '../src/shared/contextual.ts'
+import { CAMPUS_QUESTIONS, exploresCampus, INTRODUCTION_PREFIX, introductionFor, introductionThemes, quizForContext } from '../src/shared/experience.ts'
 import { validateContent } from '../src/shared/validate.ts'
 
 const load = (file) => JSON.parse(readFileSync(new URL(`../src/data/${file}`, import.meta.url), 'utf8'))
@@ -266,6 +268,63 @@ test('skip and offline roster work for the two-game flow', () => {
   assert.equal(skipGameStep({ ...s, room: { ...room, ...talk } }).phase, 'hangout')
   assert.equal(MAX_PLAYERS, 12)
 })
+console.log('Campus context')
+test('the group introduction selects campus discovery without inventing student backgrounds', () => {
+  for (const description of ['We are new students at UC San Diego', 'First-year meetup', 'We want to explore the campus', 'New to campus']) assert.equal(exploresCampus({ description }), true)
+  for (const description of ['', 'Board games with classmates', 'We are not all new students', 'We are not new to campus']) assert.equal(exploresCampus({ description }), false)
+})
+test('campus speaking questions rotate through six rounds and preserve three voice answers', () => {
+  const context = { description: 'New students exploring campus' }
+  const sets = Array.from({ length: 6 }, (_, index) => quizForContext('room-1', index + 1, context))
+  for (let index = 0; index < 3; index++) assert.equal(new Set(sets.map((set) => set.voice[index].id)).size, 6)
+  assert.equal(sets[0].thisOrThat.length, 5)
+  assert.deepEqual(quizForContext('room-1', 1, {}), quizForRound('room-1', 1))
+})
+test('personal introductions use the existing text field and preserve speaking question context', () => {
+  const player = { ...makePlayers(1)[0], voice_text: INTRODUCTION_PREFIX + 'I hope to learn coding and find a reading group.', voice_answers: [] }
+  assert.equal(introductionFor(player), 'I hope to learn coding and find a reading group.')
+  assert.deepEqual(voiceAnswersFor(player), [])
+  assert.deepEqual(introductionThemes([player]), ['Books', 'Tech'])
+  assert.equal(groupProfile([player]).players[0].introduction, introductionFor(player))
+  assert.equal(introductionFor({ ...player, voice_text: 'An older voice response' }), '')
+  assert.equal(introductionThemes([player], { description: 'A group for music' })[0], 'Music')
+})
+test('new-student sessions tailor every level and choose a three-step on-campus task', () => {
+  const players = makePlayers(12).map((player) => ({ ...player, voice_text: INTRODUCTION_PREFIX + 'I would like to find a music group', voice_answers: [] }))
+  const room = { ...makeRoom(players), description: 'We are first-year students exploring campus', round: 2 }
+  const tailored = contextualRoom(room, players, BACKUP, SPOTS)
+  assert.equal(room.content.campus_task, undefined, 'the stored game was not mutated')
+  assert.ok(SPOTS.find((spot) => spot.id === tailored.content.hangout.spot_id).on_campus)
+  assert.equal(tailored.content.campus_task.steps.length, 3)
+  assert.equal(tailored.content.computed.minutes_away, null)
+  assert.match(tailored.content.tierlist.topic, /campus/i)
+  for (const level of ['light', 'real', 'deep']) {
+    assert.equal(tailored.content.realtalk[level].length, 4)
+    assert.ok(tailored.content.realtalk[level].some((question) => /music/i.test(question)))
+    assert.ok(tailored.content.realtalk[level].some((question) => CAMPUS_QUESTIONS[level].includes(question)))
+  }
+  assert.equal(validateContent(tailored.content, ctxFor(players)).ok, true)
+  assert.deepEqual(contextualRoom(tailored, players, BACKUP, SPOTS).content, tailored.content)
+})
+test('general groups keep generated content while introductions inform their discussion', () => {
+  const players = makePlayers(3).map((player) => ({ ...player, voice_text: INTRODUCTION_PREFIX + 'I am curious about photography.', voice_answers: [] }))
+  const room = makeRoom(players)
+  const tailored = contextualRoom(room, players, BACKUP, SPOTS)
+  assert.deepEqual(tailored.content.tierlist, room.content.tierlist)
+  assert.equal(tailored.content.campus_task, undefined)
+  assert.match(tailored.content.realtalk.light[0], /art & design/i)
+  assert.equal(validateContent(tailored.content, ctxFor(players)).ok, true)
+})
+
+test('campus tier topics rotate and manual content edits remain authoritative', () => {
+  const players = makePlayers(3)
+  const room = { ...makeRoom(players), description: 'New students exploring campus' }
+  const topics = Array.from({ length: 6 }, (_, seed) => buildBackupContent(players, BACKUP, SPOTS, { seed, room }).tierlist.topic)
+  assert.equal(new Set(topics).size, 6)
+  const edited = { ...room, content_source: 'wizard' }
+  assert.equal(contextualRoom(edited, players, BACKUP, SPOTS), edited)
+})
+
 console.log('Community planner')
 test('chat invites accept HTTPS and reject executable URLs and embedded credentials', () => {
   assert.equal(inviteUrl(' https://example.com/invite '), 'https://example.com/invite')

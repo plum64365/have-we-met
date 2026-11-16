@@ -16,5 +16,12 @@ Keep each `id` short, lowercase and unique. The AI must answer with one of these
 spot suits. The AI and backup rank spots by the number of distinct players with a matching
 interest, using proximity to break ties. `activity` supplies a concrete plan at that spot.
 
-After editing, run `npm run sync` (it also runs automatically before `npm run dev` and
-`npm run build`) and redeploy the Edge Function so it gets the new list.
+The campus discovery ending uses the four entries marked `on_campus` with exactly three
+`exploration_steps`. Their `source_url` links to official UC San Diego information.
+Geisel and Sun God are real campus landmarks, but coordinates and travel minutes remain
+approximate. The new-student activity is an exploration rather than a promise of equipment,
+entry, business hours, or event availability.
+
+For the current frontend-only release, editing these entries changes the browser's campus
+ending after a normal frontend build. When preparing a separately authorized Edge Function
+release, run `npm run sync` explicitly to copy the list and shared sources before deployment.

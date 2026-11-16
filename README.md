@@ -10,7 +10,7 @@ generated from what the group has in common:
 1. **Tier List** (phones away): rank 8 things together, out loud.
 2. **Real Talk** (phones away): nine questions for 2–9 players, twelve for 10–12 players. Everyone starts a turn.
 
-It ends with a hangout suggestion and a shared room for planning a meetup, responding to invitations, posting photos and updates, and returning later.
+It ends with a hangout suggestion and a shared room for planning a meetup, responding to invitations, posting photos and updates, and returning later. New-student rooms get campus-focused speaking questions, Tier List and Real Talk, plus a three-step campus discovery task. Optional personal introductions and voice answers inform neutral discussion themes.
 
 ## How it is built
 
@@ -32,6 +32,9 @@ rejoins as the same player.
 | `/host` | The laptop on the projector | Creates a room and drives every phase change |
 | `/play`, `/play/:code` | Phones | Join, take the quiz, answer and vote |
 | `/room/:code` | Returning players | Saved plan, calendar export, RSVPs, chat invite, photos and updates |
+| `/stories` | Everyone | Community stories screen with outcome filters and browser-saved bookmarks |
+| `/stories/:id` | Everyone | Story detail and follow-up plan |
+| `/stories/write` | Returning groups | A story draft with optional photo, saved on this browser. Live publishing is not connected yet |
 | `/wizard/:code` | A teammate, quietly | Edit content, swap prompts, force the next phase. Not linked from anywhere. |
 | `/preview` | Developers (`npm run dev` only) | Every screen with fake data, no Supabase needed |
 
@@ -45,7 +48,7 @@ cp .env.example .env.local     # then fill in the two VITE_ values
 npm run dev
 ```
 
-The app needs a Supabase project to do anything real. **`SETUP.md` has the full steps**
+Multiplayer play and shared room plans need the existing backend. Home and the stories screens work without backend configuration. **`SETUP.md` has the full steps**
 (create the project, run the migration, deploy the function, deploy to Vercel).
 
 Want to look at the design first? `npm run dev` and open `http://localhost:5173/preview`.
@@ -60,7 +63,7 @@ That page works with no Supabase project at all.
 | `npm run lint` | ESLint |
 | `npm run test:logic` | Checks the game logic (backup content, validation, phase machine) with fake players |
 | `npm run links` | Prints the URLs to open for a multi-device test (see `TESTING.md`) |
-| `npm run sync` | Copies shared code and data into the Edge Function folder (runs by itself before `dev` and `build`) |
+| `npm run sync` | Explicitly copies shared code and data into the Edge Function folder when preparing a separate backend release |
 
 ## How the game stays in sync
 
@@ -141,3 +144,25 @@ Player and host recognition use the browser they originally joined or hosted wit
 The room board follows this account-free classroom prototype's existing access model.
 Plans, chat invites, photos, and updates are shared through the room link, and the database
 API policies permit public reads. Returning access uses the original browser identity.
+
+## Campus context and returning groups
+
+Use **Customize room → Use new-student introduction**, or describe students as new to campus.
+The browser adapts the game using curated campus questions, personal-introduction themes,
+and the selected interests. Campus destinations are restricted to Price Center, RIMAC,
+Geisel Library, and Sun God Lawn. The room checklist links to official campus information
+and the campus map. Travel estimates are omitted for the browser-selected campus task.
+The six campus Tier Lists and eighteen campus speaking questions rotate between rounds.
+
+This release uses existing room descriptions, `players.voice_text` for a marked optional
+introduction, the existing three `voice_answers`, and existing room content. There are no
+new tables, migrations, environment variables, or deployed Edge Function changes. Browser
+adaptation takes effect with the frontend deployment. The shared AI prompt source includes
+more detailed context guidance for a future, separately authorized generator update.
+
+Exploration checklist progress, story drafts, bookmarks, and recent-room shortcuts stay
+on the same browser. Existing room plans and room updates still use their existing shared
+backend. Public story publishing is deliberately unconnected. The stories feed contains no
+invented testimonials and starts empty. `src/data/community-stories.json` is an empty feed
+placeholder, used only to build and test the interface. Your groupmate can replace that
+read path and connect the draft form to live publishing in a separate backend task.

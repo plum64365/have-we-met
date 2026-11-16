@@ -29,6 +29,8 @@ export interface GameContent {
   realtalk: { light: string[]; real: string[]; deep: string[] }
   hangout: { activity: string; spot_id: string; why: string[] }
   fun_facts: string[]
+  /** Curated from the selected campus spot after validation. */
+  campus_task?: { key: string; title: string; steps: string[]; return_prompt: string }
   /** Added by our code, never by the AI. */
   computed?: {
     /** Travel estimate from the group's average location. null when too few players shared. */
@@ -126,6 +128,9 @@ export interface Spot {
   /** Curated activity that can actually be done at this spot. */
   activity?: string
   placeholder: boolean
+  on_campus?: boolean
+  source_url?: string
+  exploration_steps?: string[]
 }
 
 export interface BackupCategory {

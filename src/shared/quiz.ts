@@ -137,7 +137,7 @@ export function quizForRound(roomId: string, round: number): QuizSelection {
 /** Preserve the original question when reading rows created before multiple answers. */
 export function voiceAnswersFor(player: Pick<PlayerRow, 'voice_text' | 'voice_answers'>): VoiceAnswer[] {
   if (player.voice_answers?.length) return player.voice_answers
-  if (player.voice_text === null) return []
+  if (player.voice_text === null || player.voice_text.startsWith('Introduction: ')) return []
   return [{ question_id: 'into-lately', question: VOICE_QUESTION, answer: player.voice_text }]
 }
 

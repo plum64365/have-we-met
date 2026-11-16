@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { patchRoom } from '../lib/api.ts'
+import { exploresCampus } from '../shared/experience.ts'
 import type { RoomRow } from '../shared/types.ts'
 
 export function RoomDetails({ room, onSaved }: { room: RoomRow; onSaved: () => void }) {
@@ -54,16 +55,32 @@ export function RoomDetails({ room, onSaved }: { room: RoomRow; onSaved: () => v
             />
           </label>
           <label className="field">
-            Description for your players
+            Describe this group and its goals
             <textarea
               className="input"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={300}
               rows={4}
-              placeholder="What brought everyone together? What should they know before joining?"
+              placeholder="For example: We are first-year students new to UC San Diego. We want to discover campus spots and find people to explore with."
             />
           </label>
+          <button
+            className="btn btn-white btn-small"
+            type="button"
+            onClick={() =>
+              setDescription(
+                'We are new students at UC San Diego. We want to explore campus, discover shared interests, and find people to hang out with again.',
+              )
+            }
+          >
+            Use new-student introduction
+          </button>
+          <p className="hint">
+            {exploresCampus({ description })
+              ? 'This game will use campus discovery questions and end with an on-campus exploration task.'
+              : 'The group description and personal introductions will guide questions and hangout ideas.'}
+          </p>
           {error && <p role="alert">{error}</p>}
           <div className="community-actions">
             <button className="btn" disabled={busy || !title.trim()}>

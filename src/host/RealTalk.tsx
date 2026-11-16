@@ -16,7 +16,7 @@ export function RealTalk({ state, room, act }: HostScreenProps) {
   const isLast = step + 1 >= sequence.length
 
   const swap = () => {
-    const spare = randomFrom(spareQuestions(REALTALK_LEVELS[level], room.content, d.question ? [d.question] : []))
+    const spare = randomFrom(spareQuestions(REALTALK_LEVELS[level], room.content, d.question ? [d.question] : [], room))
     if (spare) void patchRoom(room, { phase_data: { ...d, question: spare, swaps: (d.swaps ?? 0) + 1 } }).then(state.refresh)
   }
 

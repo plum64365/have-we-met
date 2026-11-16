@@ -114,7 +114,7 @@ function PlayRoom({ code }: { code: string }) {
         {!state.connected && <span className="chip chip-light">Reconnecting…</span>}
       </header>
       {room.phase === 'lobby' ? (
-        <Quiz key={`${room.round}:${player.quiz_round}`} player={player} round={room.round} />
+        <Quiz key={`${room.round}:${player.quiz_round}`} player={player} round={room.round} context={room} />
       ) : (
         <PhoneGame state={state} room={room} player={player} />
       )}

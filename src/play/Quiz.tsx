@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconCheck, IconEyes, IconMic, IconPin } from '../components/ui.tsx'
+import { INTRODUCTION_PREFIX, introductionFor, quizForContext } from '../shared/experience.ts'
+import type { EventContext } from '../shared/experience.ts'
 import { useSpeech } from '../hooks/useSpeech.ts'
 import { setPlayerLocation, updateQuizPlayer } from '../lib/api.ts'
-import { INTERESTS, MAX_INTERESTS, MIN_INTERESTS, quizComplete, quizForRound, voiceAnswersFor } from '../shared/quiz.ts'
+import { INTERESTS, MAX_INTERESTS, MIN_INTERESTS, quizComplete, voiceAnswersFor } from '../shared/quiz.ts'
 import type { QuizSelection, ThisOrThat } from '../shared/quiz.ts'
 import type { VoiceQuestion } from '../shared/question-bank.ts'
 import type { PlayerRow } from '../shared/types.ts'
@@ -12,7 +14,7 @@ const STEPS = ['Interests', 'Voice 1', 'Voice 2', 'Voice 3', 'This or that', 'Lo
 
 /** Resume at the first question that has not been answered or explicitly passed. */
 function resumeStep(player: PlayerRow, questions: QuizSelection): number {
-  if (player.interests.length < MIN_INTERESTS) return 0
+  if (player.interests.length < MIN_INTERESTS || !player.voice_text?.startsWith(INTRODUCTION_PREFIX)) return 0
   const answers = voiceAnswersFor(player)
   const missing = questions.voice.findIndex((q) => !answers.some((a) => a.question_id === q.id))
   if (missing >= 0) return missing + 1
@@ -20,8 +22,16 @@ function resumeStep(player: PlayerRow, questions: QuizSelection): number {
   return 5
 }
 
-export function Quiz({ player, round }: { player: PlayerRow; round: number }) {
-  const questions = quizForRound(player.room_id, round)
+export function Quiz({
+  player,
+  round,
+  context,
+}: {
+  player: PlayerRow
+  round: number
+  context?: EventContext
+}) {
+  const questions = quizForContext(player.room_id, round, context)
   const [draft, setDraft] = useState(player)
   const [step, setStep] = useState(() => resumeStep(player, questions))
   const [error, setError] = useState<string | null>(null)
@@ -54,12 +64,15 @@ export function Quiz({ player, round }: { player: PlayerRow; round: number }) {
 
   const question = questions.voice[step - 1]
   const answerVoice = (answer: string) => {
-    const previous = voiceAnswersFor(draft).filter((a) =>
-      a.question_id !== question.id && questions.voice.some((q) => q.id === a.question_id),
+    const previous = voiceAnswersFor(draft).filter(
+      (a) => a.question_id !== question.id && questions.voice.some((q) => q.id === a.question_id),
     )
-    return save({
-      voice_answers: [...previous, { question_id: question.id, question: question.prompt, answer }],
-    }, step + 1)
+    return save(
+      {
+        voice_answers: [...previous, { question_id: question.id, question: question.prompt, answer }],
+      },
+      step + 1,
+    )
   }
   return (
     <section className="quiz" aria-busy={saving}>
@@ -69,7 +82,12 @@ export function Quiz({ player, round }: { player: PlayerRow; round: number }) {
         ))}
       </ol>
       <fieldset className="quiz-fields" disabled={saving}>
-        {step === 0 && <InterestsStep player={draft} onNext={(interests) => save({ interests }, 1)} />}
+        {step === 0 && (
+          <InterestsStep
+            player={draft}
+            onNext={(interests, bio) => save({ interests, voice_text: INTRODUCTION_PREFIX + bio }, 1)}
+          />
+        )}
         {step >= 1 && step <= 3 && (
           <VoiceStep
             key={question.id}
@@ -97,19 +115,38 @@ export function Quiz({ player, round }: { player: PlayerRow; round: number }) {
           />
         )}
       </fieldset>
-      {saving && <p className="hint" role="status">Saving…</p>}
-      {error && <p className="notice" role="alert">{error}</p>}
+      {saving && (
+        <p className="hint" role="status">
+          Saving…
+        </p>
+      )}
+      {error && (
+        <p className="notice" role="alert">
+          {error}
+        </p>
+      )}
     </section>
   )
 }
 
-function InterestsStep({ player, onNext }: { player: PlayerRow; onNext: (interests: string[]) => void }) {
+function InterestsStep({
+  player,
+  onNext,
+}: {
+  player: PlayerRow
+  onNext: (interests: string[], bio: string) => void
+}) {
   const [picked, setPicked] = useState<string[]>(player.interests)
+  const [bio, setBio] = useState(introductionFor(player))
   const atMax = picked.length >= MAX_INTERESTS
 
   const toggle = (interest: string) =>
     setPicked((list) =>
-      list.includes(interest) ? list.filter((i) => i !== interest) : list.length >= MAX_INTERESTS ? list : [...list, interest],
+      list.includes(interest)
+        ? list.filter((i) => i !== interest)
+        : list.length >= MAX_INTERESTS
+          ? list
+          : [...list, interest],
     )
 
   return (
@@ -135,14 +172,39 @@ function InterestsStep({ player, onNext }: { player: PlayerRow; onNext: (interes
           )
         })}
       </div>
-      <button className="btn btn-big" disabled={picked.length < MIN_INTERESTS} onClick={() => onNext(picked)}>
+      <label className="field">
+        A little about you <span className="hint">Optional</span>
+        <textarea
+          className="input"
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          maxLength={380}
+          rows={3}
+          placeholder="What are you hoping to find here? Tell us about your interests, being new to campus, or something you would like to try."
+        />
+      </label>
+      <p className="hint">
+        Your introduction helps tailor the game and is shared with your room. It is never added to public
+        stories automatically.
+      </p>
+      <button
+        className="btn btn-big"
+        disabled={picked.length < MIN_INTERESTS}
+        onClick={() => onNext(picked, bio.trim())}
+      >
         Next
       </button>
     </div>
   )
 }
 
-function VoiceStep({ question, number, answer, onNext, onBack }: {
+function VoiceStep({
+  question,
+  number,
+  answer,
+  onNext,
+  onBack,
+}: {
   question: VoiceQuestion
   number: number
   answer: string
@@ -209,7 +271,9 @@ function VoiceStep({ question, number, answer, onNext, onBack }: {
       )}
 
       {speech.failure && !typing && <p className="hint">{speech.failure} Typing works just as well.</p>}
-      {!speech.supported && <p className="hint">Voice is not available in this browser, so type your answer.</p>}
+      {!speech.supported && (
+        <p className="hint">Voice is not available in this browser, so type your answer.</p>
+      )}
 
       <label className="field">
         <span>{useTyping ? 'Your answer' : 'What we heard (tap to fix it)'}</span>
@@ -296,7 +360,12 @@ function ThisOrThatStep({
 
 type Coords = { lat: number; lng: number }
 
-function LocationStep({ player, onBack, onError, onComplete }: {
+function LocationStep({
+  player,
+  onBack,
+  onError,
+  onComplete,
+}: {
   player: PlayerRow
   onBack: () => void
   onError: (m: string | null) => void

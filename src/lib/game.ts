@@ -4,6 +4,7 @@ import backupJson from '../data/backup-content.json'
 import spotsJson from '../data/spots.json'
 import { rankSpots } from '../shared/geo.ts'
 import { buildBackupContent } from '../shared/backup.ts'
+import { CAMPUS_QUESTIONS, exploresCampus } from '../shared/experience.ts'
 import { REAL_TALK_QUESTIONS } from '../shared/question-bank.ts'
 import { REALTALK_LEVELS } from '../shared/types.ts'
 import type { BackupContent, GameContent, PlayerRow, RealTalkLevel, RoomRow, Spot } from '../shared/types.ts'
@@ -49,6 +50,7 @@ export async function buildGame(room: RoomRow, players: PlayerRow[]): Promise<'f
 export function localBackup(room: RoomRow, players: PlayerRow[], note?: string): GameContent {
   const content = buildBackupContent(players, BACKUP, rankSpots(SPOTS, null), {
     seed: room.round - 1,
+    room,
   })
   // Location is not readable from the browser, so there is no distance estimate here.
   content.computed = { minutes_away: null, ...(note ? { note } : {}) }
@@ -56,8 +58,9 @@ export function localBackup(room: RoomRow, players: PlayerRow[], note?: string):
 }
 
 /** Spare Real Talk questions for a level, leaving out ones already in the game. */
-export function spareQuestions(level: RealTalkLevel, content: GameContent | null, alsoAvoid: string[] = []): string[] {
+export function spareQuestions(level: RealTalkLevel, content: GameContent | null, alsoAvoid: string[] = [], room?: RoomRow): string[] {
   const taken = new Set([...(content ? REALTALK_LEVELS.flatMap((l) => content.realtalk[l]) : []), ...alsoAvoid])
+  if (exploresCampus(room)) return CAMPUS_QUESTIONS[level].filter((question) => !taken.has(question))
   const all = [REAL_TALK_QUESTIONS[level], BACKUP.general.realtalk[level], ...Object.values(BACKUP.categories).map((c) => c.realtalk[level])].flat()
   return [...new Set(all)].filter((q) => !taken.has(q))
 }

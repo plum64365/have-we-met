@@ -1,6 +1,8 @@
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchRoomByCode, fetchRoomTables } from '../lib/api.ts'
+import { contextualRoom } from '../shared/contextual.ts'
+import { BACKUP, SPOTS } from '../lib/game.ts'
 import { supabase } from '../lib/supabase.ts'
 import type { PlayerRow, RoomRow, TierPlacementRow } from '../shared/types.ts'
 
@@ -116,15 +118,21 @@ export function useRoom(code: string | undefined, me: Me): RoomState {
     })
 
     channel
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, (c: Change) => {
-        if (c.eventType === 'DELETE') void refresh()
-        else acceptRoom(c.new as unknown as RoomRow)
-      })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
+        (c: Change) => {
+          if (c.eventType === 'DELETE') void refresh()
+          else acceptRoom(c.new as unknown as RoomRow)
+        },
+      )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter }, (c: Change) =>
         setPlayers((list) => applyChange(list, c, idKey)),
       )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tier_placements', filter }, (c: Change) =>
-        setPlacements((list) => applyChange(list, c, placementKey)),
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tier_placements', filter },
+        (c: Change) => setPlacements((list) => applyChange(list, c, placementKey)),
       )
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState<{ playerId?: string }>()
@@ -172,11 +180,16 @@ export function useRoom(code: string | undefined, me: Me): RoomState {
     [players],
   )
 
+  const tailoredRoom = useMemo(
+    () => (room ? contextualRoom(room, sortedPlayers, BACKUP, SPOTS) : null),
+    [room, sortedPlayers],
+  )
+
   return {
     status,
     forCode,
     error,
-    room,
+    room: tailoredRoom,
     players: sortedPlayers,
     placements: roundPlacements,
     onlineIds,

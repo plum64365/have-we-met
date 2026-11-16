@@ -5,9 +5,7 @@
   "type": "module",
   "scripts": {
     "sync": "node scripts/sync-shared.mjs",
-    "predev": "npm run sync",
     "dev": "vite --host",
-    "prebuild": "npm run sync",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "lint": "eslint .",

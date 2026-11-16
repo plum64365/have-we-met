@@ -145,6 +145,21 @@ The mic and location need HTTPS, so real phones need the deployed site.
 | "Hold to talk" never appears on an iPhone | Siri and Dictation are off, or not on HTTPS | Expected. The typing box is the fallback. |
 | A 7th person cannot join | The room community migration is missing | Apply `20261116004911_room_community.sql`; the cap is twelve. |
 
+## Latest campus and stories update — frontend only
+
+For this update, deploy only the frontend. Keep the existing Vite environment variables.
+No migration, Edge Function deployment, new secret, or new Storage bucket is required.
+`npm run dev` and `npm run build` no longer synchronize files into the function directory.
+`npm run sync` remains an explicit command for a future, separate backend release.
+
+The campus ending and contextual questions run in the browser using the existing schema.
+The public stories screens and browser-saved drafts are ready. Live publishing and a live
+public feed are left for the backend owner to implement separately. Do not present the
+empty feed as a collection of existing friendships or seed invented student testimonials.
+
+The instructions below cover the earlier backend-dependent twelve-player/community
+release. They are not additional deployment steps for this frontend update.
+
 ## Updating an existing hosted game
 
 1. Apply any pending upgrade migrations in filename order, including `20261116004911_room_community.sql`.

@@ -1,8 +1,12 @@
+import { introductionFor } from './experience.ts'
 import { INTERESTS, THIS_OR_THAT, voiceAnswersFor } from './quiz.ts'
 import type { PlayerRow } from './types.ts'
 
 /** The parts of a player that the content logic needs. */
-export type PlayerLite = Pick<PlayerRow, 'id' | 'name' | 'interests' | 'this_or_that' | 'voice_text' | 'voice_answers'>
+export type PlayerLite = Pick<
+  PlayerRow,
+  'id' | 'name' | 'interests' | 'this_or_that' | 'voice_text' | 'voice_answers'
+>
 
 export interface InterestCount {
   interest: string
@@ -139,7 +143,10 @@ export function firstName(name: string): string {
  * two players share a first name. Returns a lookup from that name (lower case) back to
  * the display name.
  */
-export function aiNames(players: PlayerLite[]): { nameOf: (p: PlayerLite) => string; aliases: Record<string, string> } {
+export function aiNames(players: PlayerLite[]): {
+  nameOf: (p: PlayerLite) => string
+  aliases: Record<string, string>
+} {
   const firsts = players.map((p) => firstName(p.name).toLowerCase())
   const nameOf = (p: PlayerLite) => {
     const first = firstName(p.name)
@@ -157,14 +164,15 @@ export function groupProfile(players: PlayerLite[], aiName: (p: PlayerLite) => s
     players: players.map((p) => ({
       name: aiName(p),
       interests: p.interests ?? [],
-      picks: THIS_OR_THAT.filter((q) => p.this_or_that?.[q.key]).map(
-        (q) => q[p.this_or_that[q.key]].label,
-      ),
-      voice_answers: voiceAnswersFor(p).filter((v) => v.answer.trim()).map((v) => ({
-        question_id: v.question_id,
-        question: v.question,
-        answer: v.answer.trim().slice(0, 140),
-      })),
+      introduction: introductionFor(p),
+      picks: THIS_OR_THAT.filter((q) => p.this_or_that?.[q.key]).map((q) => q[p.this_or_that[q.key]].label),
+      voice_answers: voiceAnswersFor(p)
+        .filter((v) => v.answer.trim())
+        .map((v) => ({
+          question_id: v.question_id,
+          question: v.question,
+          answer: v.answer.trim().slice(0, 140),
+        })),
     })),
     interest_counts: interestCounts(players),
     this_or_that: thisOrThatSplits(players).map((s) => ({

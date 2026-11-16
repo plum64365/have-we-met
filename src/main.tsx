@@ -7,6 +7,7 @@ import './styles/host.css'
 import './styles/play.css'
 import './styles/wizard.css'
 import './styles/community.css'
+import './styles/stories.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

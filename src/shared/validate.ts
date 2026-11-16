@@ -63,7 +63,8 @@ export function validateContent(raw: unknown, ctx: ValidateContext): ValidateRes
   const light = textList(rt.light, count, count, 180)
   const real = textList(rt.real, count, count, 180)
   const deep = textList(rt.deep, count, count, 180)
-  if (!light || !real || !deep) return { ok: false, error: `realtalk needs ${count} questions each for light, real and deep` }
+  if (!light || !real || !deep)
+    return { ok: false, error: `realtalk needs ${count} questions each for light, real and deep` }
 
   if (new Set([...light, ...real, ...deep].map((q) => q.toLowerCase())).size !== count * 3) {
     return { ok: false, error: 'realtalk questions must be distinct' }
@@ -86,7 +87,10 @@ export function validateContent(raw: unknown, ctx: ValidateContext): ValidateRes
 
   // Replacing only the id would leave an activity and chips describing another spot.
   const hangout = ctx.preferredHangout
-    ? { ...ctx.preferredHangout, activity: h.spot_id === ctx.preferredHangout.spot_id ? activity : ctx.preferredHangout.activity }
+    ? {
+        ...ctx.preferredHangout,
+        activity: h.spot_id === ctx.preferredHangout.spot_id ? activity : ctx.preferredHangout.activity,
+      }
     : { activity, spot_id: spotId, why }
 
   const content: GameContent = {
@@ -97,11 +101,22 @@ export function validateContent(raw: unknown, ctx: ValidateContext): ValidateRes
     fun_facts: funFacts,
   }
 
+  const task = raw.campus_task
+  if (isRecord(task)) {
+    const key = text(task.key, 64)
+    const title = text(task.title, 100)
+    const steps = textList(task.steps, 3, 3, 180)
+    const returnPrompt = text(task.return_prompt, 180)
+    if (key && title && steps && returnPrompt)
+      content.campus_task = { key, title, steps, return_prompt: returnPrompt }
+  }
+
   // Keep our own computed block if the caller (the wizard) passed it back.
   const c = raw.computed
   if (isRecord(c)) {
     content.computed = {
-      minutes_away: typeof c.minutes_away === 'number' && Number.isFinite(c.minutes_away) ? c.minutes_away : null,
+      minutes_away:
+        typeof c.minutes_away === 'number' && Number.isFinite(c.minutes_away) ? c.minutes_away : null,
       ...(typeof c.note === 'string' ? { note: c.note } : {}),
     }
   }

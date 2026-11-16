@@ -52,3 +52,29 @@ supported browser.
 
 The account-free room board is accessible through room links and the public API access
 model documented in `README.md`. Test photos should be appropriate for the shared room.
+
+## Campus context and stories screens — frontend only
+
+1. Customize a room with the new-student introduction. Join on a phone, choose interests,
+   and enter an optional introduction. Confirm three campus-oriented speaking questions,
+   typing and passing, and refresh/resume. The introduction must not consume one of the
+   three speaking-answer slots.
+2. Play with two and twelve people. Confirm a campus Tier List, the correct Real Talk
+   count, newcomer-answerable questions at each level, and campus-only question swaps.
+   Play again and check that speaking questions and Tier List topics rotate.
+3. Finish the game. Confirm the projector's campus task and the phone's three checkboxes.
+   Follow the map and official spot link. Check a step and refresh in the same browser.
+   Progress is browser-local, separate from the existing shared planner.
+4. Return home and open the recent-room shortcut. Existing planner, RSVP, photo and chat
+   features should remain available.
+5. Open `/stories` without backend configuration. Confirm an honest empty state and
+   filters for first hangout, became friends, still meeting, and saved stories. Test story
+   cards, details, bookmark persistence, and missing story IDs with a browser-only fixture.
+   Do not put fictional test stories in the published data file.
+6. Open `/stories/write`. Save a partial draft, reload, and check that it resumes. Add and
+   remove a photo, save again, and verify the preview after reload. Delete the saved draft.
+   Test storage failure with a clear error. Live publishing must remain visibly unavailable
+   and story actions must make no backend requests.
+
+Frontend checks can use in-memory API responses. No Supabase service, SQL, migration,
+or function deployment is needed to test this release's new behavior.

@@ -1,8 +1,11 @@
-import { useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { CampusTask } from './CampusTask.tsx'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useCommunity } from '../hooks/useCommunity.ts'
 import { savePlan, savePost, saveRsvp } from '../lib/community.ts'
 import { spotById } from '../lib/game.ts'
+import { rememberRoom } from '../lib/returnVisits.ts'
 import { uuid } from '../lib/identity.ts'
 import { preparePhoto } from '../lib/photos.ts'
 import { calendarForPlan, inviteUrl } from '../shared/community.ts'
@@ -21,6 +24,9 @@ export function RoomCommunity({
   player?: PlayerRow
   editable?: boolean
 }) {
+  useEffect(() => {
+    rememberRoom({ code: room.code, title: room.title })
+  }, [room.code, room.title])
   const data = useCommunity(room.id)
   const [editing, setEditing] = useState(false)
   const [message, setMessage] = useState('')
@@ -90,6 +96,15 @@ export function RoomCommunity({
             Try again
           </button>
         </div>
+      )}
+
+      {room.content?.campus_task && (
+        <CampusTask
+          key={`${room.round}:${room.content.campus_task.key}`}
+          room={room}
+          task={room.content.campus_task}
+          spot={spotById(room.content.hangout.spot_id)}
+        />
       )}
 
       <section className="card pad community-card" aria-label="Hangout planner">
@@ -189,6 +204,23 @@ export function RoomCommunity({
           )}
         </div>
         {message && <p role="status">{message}</p>}
+      </section>
+
+      <section className="card pad community-card" aria-label="Your next chapter">
+        <p className="kicker">Make this the beginning</p>
+        <h2>What happened after you met?</h2>
+        <p>
+          Come back after your hangout. Keep planning here, record your group’s story, and explore stories
+          shared by other groups.
+        </p>
+        <div className="community-actions">
+          <Link className="btn btn-cyan" to="/stories/write">
+            Write your story
+          </Link>
+          <Link className="btn btn-white" to="/stories">
+            Read community stories
+          </Link>
+        </div>
       </section>
 
       <section className="community-feed" aria-label="Room updates">
