@@ -7,6 +7,8 @@ export interface ValidateContext {
   aliases?: Record<string, string>
   /** Valid spot ids, best first. An unknown spot_id is replaced by the first one. */
   spotIds: string[]
+  /** Three per level normally, four for ten to twelve players. */
+  questionsPerLevel?: number
   /** Preferred, grounded recommendation for generated content and invalid spot repairs. */
   preferredHangout?: GameContent['hangout']
 }
@@ -31,35 +33,8 @@ function textList(v: unknown, min: number, max: number, maxLen: number): string[
 }
 
 /**
- * Turns whatever names came back into two different real players. Unknown names are
- * dropped and gaps are filled with whoever has had the fewest prompts so far.
- */
-function repairPair(raw: unknown, ctx: ValidateContext, used: Map<string, number>): string[] {
-  const names = ctx.playerNames
-  if (names.length < 2) return [...names]
-  const resolve = (n: unknown): string | null => {
-    if (typeof n !== 'string') return null
-    const key = n.trim().toLowerCase()
-    return names.find((p) => p.toLowerCase() === key) ?? ctx.aliases?.[key] ?? null
-  }
-  const pair: string[] = []
-  for (const n of Array.isArray(raw) ? raw : []) {
-    const name = resolve(n)
-    if (name && !pair.includes(name) && pair.length < 2) pair.push(name)
-  }
-  while (pair.length < 2) {
-    const next = names
-      .filter((n) => !pair.includes(n))
-      .sort((x, y) => (used.get(x) ?? 0) - (used.get(y) ?? 0))[0]
-    pair.push(next)
-  }
-  for (const n of pair) used.set(n, (used.get(n) ?? 0) + 1)
-  return pair
-}
-
-/**
  * Checks AI or wizard content against the shape the game needs. Small problems are
- * repaired (extra items, unknown player names, unknown spot); missing or wrong-typed
+ * repaired (extra items and unknown spots); missing or wrong-typed
  * sections fail with a message that says which part was wrong.
  */
 export function validateContent(raw: unknown, ctx: ValidateContext): ValidateResult {
@@ -79,24 +54,18 @@ export function validateContent(raw: unknown, ctx: ValidateContext): ValidateRes
   }
   const reason = text(tl.reason, 120) ?? 'Picked for this group'
 
-  if (!Array.isArray(raw.wit) || raw.wit.length === 0) return { ok: false, error: 'wit needs at least 1 prompt' }
-  const used = new Map<string, number>()
+  // Old saved games may carry Wit content. Current games use the two-game flow.
   const wit: GameContent['wit'] = []
-  for (const [i, w] of raw.wit.entries()) {
-    if (!isRecord(w)) return { ok: false, error: `wit[${i}] is not an object` }
-    const prompt = text(w.prompt, 160)
-    if (!prompt) return { ok: false, error: `wit[${i}].prompt is empty` }
-    wit.push({ prompt, players: repairPair(w.players, ctx, used) })
-  }
 
   const rt = raw.realtalk
   if (!isRecord(rt)) return { ok: false, error: 'realtalk is missing' }
-  const light = textList(rt.light, 3, 3, 180)
-  const real = textList(rt.real, 3, 3, 180)
-  const deep = textList(rt.deep, 3, 3, 180)
-  if (!light || !real || !deep) return { ok: false, error: 'realtalk needs 3 questions each for light, real and deep' }
+  const count = ctx.questionsPerLevel ?? 3
+  const light = textList(rt.light, count, count, 180)
+  const real = textList(rt.real, count, count, 180)
+  const deep = textList(rt.deep, count, count, 180)
+  if (!light || !real || !deep) return { ok: false, error: `realtalk needs ${count} questions each for light, real and deep` }
 
-  if (new Set([...light, ...real, ...deep].map((q) => q.toLowerCase())).size !== 9) {
+  if (new Set([...light, ...real, ...deep].map((q) => q.toLowerCase())).size !== count * 3) {
     return { ok: false, error: 'realtalk questions must be distinct' }
   }
 

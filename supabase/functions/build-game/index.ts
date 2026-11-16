@@ -17,12 +17,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import backupJson from '../_shared/backup-content.json' with { type: 'json' }
 import spotsJson from '../_shared/spots.json' with { type: 'json' }
-import { buildBackupContent, fitWitCount } from '../_shared/backup.ts'
+import { buildBackupContent } from '../_shared/backup.ts'
 import { averageLocation, estimateMinutes, rankSpots } from '../_shared/geo.ts'
 import { aiNames } from '../_shared/profile.ts'
 import { SYSTEM_PROMPT, userPrompt } from '../_shared/prompts.ts'
 import { hangoutForSpot, rankHangoutSpots } from '../_shared/hangout.ts'
-import { MIN_PLAYERS, QUICK_PLAY_PROMPTS } from '../_shared/quiz.ts'
+import { MAX_PLAYERS, MIN_PLAYERS, realTalkQuestionsPerLevel } from '../_shared/quiz.ts'
 import type { BackupContent, GameContent, PlayerRow, RoomRow, Spot } from '../_shared/types.ts'
 import { validateContent } from '../_shared/validate.ts'
 
@@ -64,14 +64,6 @@ function responseSchema() {
         properties: { topic: { type: 'string' }, reason: { type: 'string' }, items: strings() },
         required: ['topic', 'reason', 'items'],
       },
-      wit: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: { prompt: { type: 'string' }, players: strings() },
-          required: ['prompt', 'players'],
-        },
-      },
       realtalk: {
         type: 'object',
         properties: { light: strings(), real: strings(), deep: strings() },
@@ -84,7 +76,7 @@ function responseSchema() {
       },
       fun_facts: strings(),
     },
-    required: ['tierlist', 'wit', 'realtalk', 'hangout', 'fun_facts'],
+    required: ['tierlist', 'realtalk', 'hangout', 'fun_facts'],
   }
 }
 
@@ -171,8 +163,8 @@ Deno.serve(async (req) => {
       .order('joined_at')
     if (playersError) return json({ ok: false, error: `Could not load players: ${playersError.message}` }, 500)
     const players = (playerRows ?? []) as PlayerRow[]
-    if (players.length < MIN_PLAYERS) {
-      return json({ ok: false, error: `Need at least ${MIN_PLAYERS} players, found ${players.length}` }, 400)
+    if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
+      return json({ ok: false, error: `Need ${MIN_PLAYERS} to ${MAX_PLAYERS} players, found ${players.length}` }, 400)
     }
 
     // Location is used here only, to order the spots and estimate travel time.
@@ -181,7 +173,6 @@ Deno.serve(async (req) => {
     const center = averageLocation(locations, players.length)
     const rankedSpots = rankHangoutSpots(players, rankSpots(SPOTS, center))
 
-    const witCount = room.quick_play ? QUICK_PLAY_PROMPTS : Math.max(MIN_PLAYERS, players.length)
     const { nameOf, aliases } = aiNames(players)
 
     let content: GameContent | null = null
@@ -194,15 +185,16 @@ Deno.serve(async (req) => {
       note = 'GEMINI_API_KEY is not set, so the backup content was used'
     } else {
       try {
-        const raw = await askGemini(apiKey, model, userPrompt(players, rankedSpots, witCount, nameOf))
+        const raw = await askGemini(apiKey, model, userPrompt(players, rankedSpots, nameOf))
         const checked = validateContent(raw, {
           playerNames: players.map((p) => p.name),
           aliases,
+          questionsPerLevel: realTalkQuestionsPerLevel(players.length),
           spotIds: rankedSpots.map((s) => s.id),
           preferredHangout: rankedSpots[0] ? hangoutForSpot(players, rankedSpots[0]) : undefined,
         })
         if (!checked.ok) throw new Error(`AI content failed validation: ${checked.error}`)
-        content = fitWitCount(checked.content, players, BACKUP, witCount, room.round - 1)
+        content = checked.content
         source = 'ai'
       } catch (e) {
         const reason = e instanceof Error ? (e.name === 'TimeoutError' ? 'Gemini took longer than 15 s' : e.message) : String(e)
@@ -212,7 +204,7 @@ Deno.serve(async (req) => {
     }
 
     if (!content) {
-      content = buildBackupContent(players, BACKUP, rankedSpots, { witCount, seed: room.round - 1 })
+      content = buildBackupContent(players, BACKUP, rankedSpots, { seed: room.round - 1 })
       source = 'backup'
     }
 

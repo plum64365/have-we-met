@@ -11,7 +11,6 @@ import { Building, Lobby } from '../host/Lobby.tsx'
 import { RealTalk } from '../host/RealTalk.tsx'
 import { TierList } from '../host/TierList.tsx'
 import { Transition } from '../host/Transition.tsx'
-import { WitScreen } from '../host/Wit.tsx'
 import type { RoomState } from '../hooks/useRoom.ts'
 import { useTheme } from '../hooks/useTheme.ts'
 import { BACKUP, SPOTS } from '../lib/game.ts'
@@ -23,12 +22,12 @@ import { AVATARS, INTERESTS } from '../shared/quiz.ts'
 import type { Phase, PhaseData, PlayerRow, RoomRow } from '../shared/types.ts'
 import type { HostActions } from './Host.tsx'
 
-const NAMES = ['Maya', 'Dev', 'Sam', 'Priya', 'Leo', 'Anastasia']
+const NAMES = ['Maya', 'Dev', 'Sam', 'Priya', 'Leo', 'Anastasia', 'Alex', 'Jordan', 'Riley', 'Casey', 'Morgan', 'Quinn']
 const players: PlayerRow[] = NAMES.map((name, i) => ({
   id: `p${i}`,
   room_id: 'r',
   name,
-  avatar: AVATARS[i],
+  avatar: AVATARS[i % AVATARS.length],
   interests: ['Food', INTERESTS[(i % 4) + 1], INTERESTS[(i % 3) + 5], 'Anime'].slice(0, i === 2 ? 3 : 4),
   voice_text: 'Rewatching Haikyuu and trying every ramen place on Convoy',
   this_or_that: { sleep: i < 4 ? 'b' : 'a', social: i % 2 ? 'a' : 'b', taste: 'b', place: 'a', plan: i % 3 ? 'b' : 'a' },
@@ -39,7 +38,7 @@ const players: PlayerRow[] = NAMES.map((name, i) => ({
 }))
 
 const content = {
-  ...buildBackupContent(players, BACKUP, SPOTS, { witCount: 2 }),
+  ...buildBackupContent(players, BACKUP, SPOTS, {}),
   computed: { minutes_away: 15 },
 }
 
@@ -48,18 +47,14 @@ const PHASE_DATA: Record<string, [Phase, PhaseData]> = {
   building: ['building', {}],
   common: ['common_ground', {}],
   away: ['transition', { kind: 'phones_away', next: 'tierlist' }],
-  out: ['transition', { kind: 'phones_out', next: 'wit_answer' }],
   tier: ['tierlist', { scribeId: 'p0' }],
   tierdone: ['tierlist', { scribeId: 'p0' }],
-  answer: ['wit_answer', { promptIndex: 0, pair: ['p0', 'p1'], deadline: new Date(Date.now() + 31_000).toISOString() }],
-  vote: ['wit_vote', { promptIndex: 0, pair: ['p0', 'p1'] }],
-  reveal: ['wit_reveal', { promptIndex: 0, pair: ['p0', 'p1'] }],
   real: ['realtalk', { step: 4, question: content.realtalk.real[1], firstPlayerId: 'p3' }],
   hangout: ['hangout', {}],
 }
-const PHONE = ['join', 'quiz', 'done', 'scribe', 'writing', 'waiting', 'voting', 'voted']
+const PHONE = ['join', 'quiz', 'done', 'scribe', 'waiting']
 
-const act: HostActions = { busy: false, next() {}, skipGame() {}, skipPrompt() {}, start() {}, again() {}, newRoom() {} }
+const act: HostActions = { busy: false, next() {}, skipGame() {}, start() {}, again() {}, newRoom() {} }
 
 function makeState(screen: string, phase: Phase, phase_data: PhaseData): RoomState & { room: RoomRow } {
   const room: RoomRow = {
@@ -75,18 +70,6 @@ function makeState(screen: string, phase: Phase, phase_data: PhaseData): RoomSta
     round: 1,
     created_at: new Date().toISOString(),
   }
-  const witStarted = ['answer', 'vote', 'reveal', 'voting', 'voted'].includes(screen)
-  const answers = witStarted
-    ? [
-        { id: 'a0', room_id: 'r', round: 1, prompt_index: 0, player_id: 'p0', text: 'Pineapple, anchovies and regret' },
-        ...(screen === 'answer' ? [] : [{ id: 'a1', room_id: 'r', round: 1, prompt_index: 0, player_id: 'p1', text: 'An entire rotisserie chicken, whole' }]),
-      ]
-    : []
-  const votes = ['reveal', 'voted'].includes(screen)
-    ? ['p2', 'p3', 'p4', 'p5'].map((voter_id, i) => ({ id: `v${i}`, room_id: 'r', round: 1, prompt_index: 0, voter_id, answer_id: i === 0 ? 'a0' : 'a1' }))
-    : screen === 'vote'
-      ? [{ id: 'v0', room_id: 'r', round: 1, prompt_index: 0, voter_id: 'p2', answer_id: 'a0' }]
-      : []
   const placedCount = screen === 'tierdone' ? 8 : screen === 'tier' ? 5 : 0
   const tiers = ['S', 'A', 'A', 'C', 'B', 'S', 'D', 'B'] as const
   const placements = Array.from({ length: placedCount }, (_, i) => ({
@@ -101,9 +84,7 @@ function makeState(screen: string, phase: Phase, phase_data: PhaseData): RoomSta
     forCode: 'KRBQ',
     error: null,
     room,
-    players: screen === 'lobby' ? players.slice(0, 5) : players,
-    answers,
-    votes,
+    players,
     placements,
     onlineIds: players.filter((_, i) => i !== 5).map((p) => p.id),
     connected: true,
@@ -125,7 +106,6 @@ function HostPreview({ screen }: { screen: string }) {
         {phase === 'common_ground' && <CommonGround {...props} />}
         {phase === 'transition' && <Transition {...props} />}
         {phase === 'tierlist' && <TierList {...props} />}
-        {phase.startsWith('wit_') && <WitScreen {...props} secondsLeft={31} />}
         {phase === 'realtalk' && <RealTalk {...props} />}
         {phase === 'hangout' && <Hangout {...props} />}
       </div>
@@ -136,10 +116,7 @@ function HostPreview({ screen }: { screen: string }) {
 function PhonePreview({ screen }: { screen: string }) {
   const map: Record<string, [string, Phase, PhaseData, number]> = {
     scribe: ['tier', 'tierlist', { scribeId: 'p0' }, 0],
-    writing: ['answer', 'wit_answer', { promptIndex: 0, pair: ['p2', 'p1'], deadline: new Date(Date.now() + 31_000).toISOString() }, 2],
     waiting: ['away', 'realtalk', {}, 2],
-    voting: ['voting', 'wit_vote', { promptIndex: 0, pair: ['p0', 'p1'] }, 2],
-    voted: ['voted', 'wit_vote', { promptIndex: 0, pair: ['p0', 'p1'] }, 2],
   }
   const entry = map[screen]
   const phase = entry?.[1] ?? 'lobby'

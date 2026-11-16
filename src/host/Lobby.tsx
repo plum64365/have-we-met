@@ -1,7 +1,7 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useState } from 'react'
 import { Blob, IconArrow, IconCheck, IconPencil, Logo } from '../components/ui.tsx'
-import { patchRoom } from '../lib/api.ts'
+import { RoomDetails } from '../components/RoomDetails.tsx'
 import type { HostScreenProps } from '../pages/Host.tsx'
 import { MAX_PLAYERS, MIN_PLAYERS, quizComplete } from '../shared/quiz.ts'
 
@@ -41,9 +41,12 @@ export function Lobby({ state, room, act }: HostScreenProps) {
   return (
     <div className="lobby">
       <section className="lobby-join">
-        <Logo />
+        <Logo small />
+        <h1 className="room-welcome" title={room.title}>{room.title || 'Have We Met?'}</h1>
+        {room.description && <p className="room-description lobby-description">{room.description}</p>}
+        <RoomDetails room={room} onSaved={state.refresh} />
         <div className="card qr-card tilt-l">
-          <QRCodeSVG value={joinUrl} size={250} marginSize={1} fgColor="#1A1033" bgColor="#FFFFFF" level="M" />
+          <QRCodeSVG value={joinUrl} size={165} marginSize={1} fgColor="#1A1033" bgColor="#FFFFFF" level="M" />
         </div>
         <p className="lobby-url">
           Scan, or go to <strong>{shownUrl.replace(`/${room.code}`, '')}</strong>
@@ -64,7 +67,7 @@ export function Lobby({ state, room, act }: HostScreenProps) {
           {slots.map((p, i) =>
             p ? (
               <li key={p.id} className={`card player-card pop ${quizComplete(p, room.round) ? 'is-done' : ''}`}>
-                <Blob color={p.avatar} size={72} dim={!onlineIds.includes(p.id)} />
+                <Blob color={p.avatar} size={42} dim={!onlineIds.includes(p.id)} />
                 <div>
                   <p className="player-name">{p.name}</p>
                   <p className={`player-status ${quizComplete(p, room.round) ? 'done' : ''}`}>
@@ -82,19 +85,6 @@ export function Lobby({ state, room, act }: HostScreenProps) {
         </ul>
 
         <div className="lobby-actions">
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={room.quick_play}
-              onChange={(e) => void patchRoom(room, { quick_play: e.target.checked }).then(state.refresh)}
-            />
-            <span className="toggle-track" aria-hidden="true" />
-            <span>
-              <strong>Quick play</strong>
-              <small>{room.quick_play ? '2 Wit Dispute prompts' : 'One prompt per player'}</small>
-            </span>
-          </label>
-
           {armed ? (
             <div className="autostart" role="status">
               <span>
@@ -135,7 +125,7 @@ export function Building() {
         <Blob color="cyan" size={90} />
       </div>
       <h1 className="host-h1">Building your game…</h1>
-      <p className="host-sub">Mixing your answers into three games made for this group</p>
+      <p className="host-sub">Mixing your answers into Tier List and Real Talk</p>
     </div>
   )
 }

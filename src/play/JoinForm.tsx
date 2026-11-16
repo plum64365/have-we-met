@@ -30,7 +30,6 @@ export function JoinForm({ initialCode, room, players = [], notice, onJoined }: 
   const navigate = useNavigate()
   const [code, setCode] = useState(initialCode)
   const [name, setName] = useState('')
-  const taken = players.map((p) => p.avatar)
   const [avatar, setAvatar] = useState<AvatarColor | null>(null)
   const [error, setError] = useState<string | null>(notice ?? null)
   const [busy, setBusy] = useState(false)
@@ -61,7 +60,8 @@ export function JoinForm({ initialCode, room, players = [], notice, onJoined }: 
 
   return (
     <form className="card pad join" onSubmit={submit} noValidate>
-      <h1>Join the game</h1>
+      <h1>{room?.title || 'Join the game'}</h1>
+      {room?.description && <p className="hint room-description">{room.description}</p>}
 
       {full && (
         <p className="notice" role="alert">
@@ -103,21 +103,18 @@ export function JoinForm({ initialCode, room, players = [], notice, onJoined }: 
         <legend>Pick your blob</legend>
         <div className="avatar-grid">
           {AVATARS.map((color) => {
-            const used = taken.includes(color)
             return (
-              <label key={color} className={`avatar-pick ${avatar === color ? 'on' : ''} ${used ? 'used' : ''}`}>
+              <label key={color} className={`avatar-pick ${avatar === color ? 'on' : ''}`}>
                 <input
                   type="radio"
                   name="avatar"
                   value={color}
                   checked={avatar === color}
-                  disabled={used}
                   onChange={() => setAvatar(color)}
                 />
-                <Blob color={color} size={64} dim={used} />
+                <Blob color={color} size={64} />
                 <span className="sr-only">
                   {AVATAR_NAMES[color]}
-                  {used ? ' (taken)' : ''}
                 </span>
               </label>
             )

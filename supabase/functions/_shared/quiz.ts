@@ -3,12 +3,9 @@ import { VOICE_QUESTIONS } from './question-bank.ts'
 import type { VoiceQuestion } from './question-bank.ts'
 
 export const MIN_PLAYERS = 2
-export const MAX_PLAYERS = 6
+export const MAX_PLAYERS = 12
 export const MIN_INTERESTS = 3
 export const MAX_INTERESTS = 5
-export const WIT_MAX_CHARS = 60
-export const WIT_SECONDS = 45
-export const QUICK_PLAY_PROMPTS = 2
 
 export const AVATARS: AvatarColor[] = ['yellow', 'pink', 'cyan', 'green', 'orange', 'lilac']
 
@@ -146,4 +143,8 @@ export function voiceAnswersFor(player: Pick<PlayerRow, 'voice_text' | 'voice_an
 
 export function quizComplete(player: PlayerRow, round: number): boolean {
   return player.quiz_done && (player.quiz_round ?? round) === round
+}
+
+export function realTalkQuestionsPerLevel(playerCount: number): number {
+  return Math.max(3, Math.ceil(playerCount / 3))
 }

@@ -50,6 +50,13 @@ export function getHostCode(): string | null {
   return read(HOST_KEY)
 }
 
+export function isHostOf(code: string): boolean {
+  return getHostCode() === code || read(`hwm.host.room.${code}`) === '1'
+}
+
 export function setHostCode(code: string | null) {
+  const previous = read(HOST_KEY)
+  if (previous) write(`hwm.host.room.${previous}`, '1')
+  if (code) write(`hwm.host.room.${code}`, '1')
   write(HOST_KEY, code)
 }

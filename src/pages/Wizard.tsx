@@ -4,18 +4,17 @@ import { useRoom } from '../hooks/useRoom.ts'
 import type { Me, RoomState } from '../hooks/useRoom.ts'
 import { useTheme } from '../hooks/useTheme.ts'
 import { applyStep, patchRoom, playAgain, removePlayer, saveContent } from '../lib/api.ts'
-import { BACKUP, localBackup, randomFrom, spareQuestions, SPOTS, witCountFor } from '../lib/game.ts'
+import { localBackup, randomFrom, spareQuestions, SPOTS } from '../lib/game.ts'
 import { cleanRoomCode } from '../lib/roomCode.ts'
 import { supabase } from '../lib/supabase.ts'
-import { backupWit } from '../shared/backup.ts'
-import { jumpTo, nextStep, skipGameStep, skipPromptStep } from '../shared/machine.ts'
+import { jumpTo, nextStep, skipGameStep } from '../shared/machine.ts'
 import type { Snapshot, Step } from '../shared/machine.ts'
 import { REALTALK_LEVELS } from '../shared/types.ts'
 import type { GameContent, Phase, RoomRow } from '../shared/types.ts'
 import { validateContent } from '../shared/validate.ts'
 
 const WIZARD: Me = { role: 'wizard' }
-const PHASES: Phase[] = ['lobby', 'common_ground', 'transition', 'tierlist', 'wit_answer', 'realtalk', 'hangout']
+const PHASES: Phase[] = ['lobby', 'common_ground', 'transition', 'tierlist', 'realtalk', 'hangout']
 
 /**
  * The Wizard of Oz console. A teammate opens /wizard/CODE on their own laptop to fix
@@ -47,7 +46,6 @@ function Console({ state, room }: { state: RoomState; room: RoomRow }) {
     room,
     players: state.players,
     onlineIds: state.onlineIds,
-    answers: state.answers,
     now: Date.now(),
   })
 
@@ -90,7 +88,6 @@ function Console({ state, room }: { state: RoomState; room: RoomRow }) {
           <span>content <b>{room.content_source ?? 'none'}</b></span>
           <span>build <b>{room.build_status}</b></span>
           <span>round <b>{room.round}</b></span>
-          <span>{room.quick_play ? 'quick play' : 'full game'}</span>
           <span className={state.connected ? 'ok' : 'bad'}>{state.connected ? 'live' : 'reconnecting'}</span>
         </p>
         {message && <p className="wiz-message" role="status">{message}</p>}
@@ -116,7 +113,6 @@ function Console({ state, room }: { state: RoomState; room: RoomRow }) {
             </button>
           )}
           <button className="wbtn" onClick={() => void move('Skip game', skipGameStep)}>Skip to next game</button>
-          <button className="wbtn" onClick={() => void move('Skip prompt', skipPromptStep)}>Skip Wit prompt</button>
           <button className="wbtn" onClick={() => void attempt('Play again', () => playAgain(room))}>Back to lobby (new round)</button>
         </div>
         <div className="wiz-row">
@@ -243,7 +239,7 @@ function Editor({ room, state, onSaved }: { room: RoomRow; state: RoomState; onS
   const names = state.players.map((p) => p.name)
 
   const save = async () => {
-    const result = validateContent(draft, { playerNames: names, spotIds: SPOTS.map((s) => s.id) })
+    const result = validateContent(draft, { playerNames: names, spotIds: SPOTS.map((s) => s.id), questionsPerLevel: draft.realtalk.light.length })
     if (!result.ok) {
       onSaved(`Not saved: ${result.error}`)
       return
@@ -256,14 +252,6 @@ function Editor({ room, state, onSaved }: { room: RoomRow; state: RoomState; onS
       onSaved(`Save failed: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-
-  const swapPrompt = (i: number) => {
-    const fresh = backupWit(state.players, BACKUP, witCountFor(false, 6) + 6, Math.floor(Math.random() * 50), draft.wit.map((w) => w.prompt))
-    const pick = randomFrom(fresh)
-    if (pick) edit((c) => void (c.wit[i].prompt = pick.prompt))
-  }
-
-  const current = room.phase_data.promptIndex
 
   return (
     <div className="wiz-editor">
@@ -282,38 +270,6 @@ function Editor({ room, state, onSaved }: { room: RoomRow; state: RoomState; onS
             <label key={i}>Item {i + 1}<input value={item} maxLength={40} onChange={(e) => edit((c) => void (c.tierlist.items[i] = e.target.value))} /></label>
           ))}
         </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Wit Dispute</legend>
-        {draft.wit.map((w, i) => (
-          <div className="wiz-row" key={i}>
-            <label className="grow">
-              Prompt {i + 1}{room.phase.startsWith('wit_') && current === i ? ' (on screen now)' : ''}
-              <input value={w.prompt} maxLength={160} onChange={(e) => edit((c) => void (c.wit[i].prompt = e.target.value))} />
-            </label>
-            {[0, 1].map((slot) => (
-              <label key={slot}>
-                Player {slot + 1}
-                <select value={w.players[slot] ?? ''} onChange={(e) => edit((c) => void (c.wit[i].players[slot] = e.target.value))}>
-                  {!names.includes(w.players[slot]) && <option value={w.players[slot] ?? ''}>{w.players[slot] || '(none)'}</option>}
-                  {names.map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </label>
-            ))}
-            <button className="wbtn small" onClick={() => swapPrompt(i)}>Swap</button>
-            <button className="wbtn small" disabled={draft.wit.length <= 1} onClick={() => edit((c) => void c.wit.splice(i, 1))}>Delete</button>
-          </div>
-        ))}
-        <button
-          className="wbtn small"
-          onClick={() => edit((c) => void c.wit.push({ prompt: 'New prompt', players: names.slice(0, 2) }))}
-        >
-          Add prompt
-        </button>
-        <small>Players for a prompt that is already on screen do not change. Edit a prompt before it starts.</small>
       </fieldset>
 
       <fieldset>

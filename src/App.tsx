@@ -5,6 +5,7 @@ import { isConfigured } from './lib/supabase.ts'
 import Home from './pages/Home.tsx'
 import Host from './pages/Host.tsx'
 import Play from './pages/Play.tsx'
+import Room from './pages/Room.tsx'
 import Wizard from './pages/Wizard.tsx'
 
 // Design preview with fake data. Dev server only: this import is dropped from production builds.
@@ -40,6 +41,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/host" element={<Host />} />
+        <Route path="/room/:code" element={<Room />} />
         <Route path="/play" element={<Play />} />
         <Route path="/play/:code" element={<Play />} />
         {/* Not linked from anywhere: the teammate running the Wizard of Oz console types the URL. */}

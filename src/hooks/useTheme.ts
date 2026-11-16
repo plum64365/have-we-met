@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 
 export type Theme = 'purple' | 'pink' | 'deep'
 
-/** Sets the page background. Wit Dispute is pink, Real Talk is deep purple, the rest purple. */
+/** Sets the page background. Real Talk uses deep purple; the default is purple. */
 export function useTheme(theme: Theme) {
   useEffect(() => {
     document.body.dataset.theme = theme

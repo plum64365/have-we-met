@@ -6,8 +6,6 @@ import { Building, Lobby } from '../host/Lobby.tsx'
 import { RealTalk } from '../host/RealTalk.tsx'
 import { TierList } from '../host/TierList.tsx'
 import { Transition } from '../host/Transition.tsx'
-import { WitScreen } from '../host/Wit.tsx'
-import { useCountdown } from '../hooks/useCountdown.ts'
 import { useRoom } from '../hooks/useRoom.ts'
 import type { Me, RoomState } from '../hooks/useRoom.ts'
 import { useTheme } from '../hooks/useTheme.ts'
@@ -15,7 +13,7 @@ import type { Theme } from '../hooks/useTheme.ts'
 import { applyStep, createRoom, playAgain } from '../lib/api.ts'
 import { buildGame } from '../lib/game.ts'
 import { getHostCode, setHostCode } from '../lib/identity.ts'
-import { currentAnswers, eligibleVoters, nextStep, skipGameStep, skipPromptStep } from '../shared/machine.ts'
+import { nextStep, skipGameStep } from '../shared/machine.ts'
 import type { Snapshot, Step } from '../shared/machine.ts'
 import { MIN_PLAYERS } from '../shared/quiz.ts'
 import type { RoomRow } from '../shared/types.ts'
@@ -32,7 +30,6 @@ export interface HostActions {
   /** Natural next step for the current phase. */
   next: () => void
   skipGame: () => void
-  skipPrompt: () => void
   start: () => void
   again: () => void
   newRoom: () => void
@@ -142,7 +139,7 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
   const run = useCallback(async (make: (s: Snapshot) => Step | null, extra?: Partial<RoomRow>) => {
     const s = latest.current
     if (!s.room) return
-    const step = make({ room: s.room, players: s.players, onlineIds: s.onlineIds, answers: s.answers, now: Date.now() })
+    const step = make({ room: s.room, players: s.players, onlineIds: s.onlineIds, now: Date.now() })
     if (!step) return
     setBusy(true)
     try {
@@ -161,7 +158,6 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
     busy,
     next: () => void run(nextStep),
     skipGame: () => void run(skipGameStep),
-    skipPrompt: () => void run(skipPromptStep),
     start: () => {
       if (latest.current.players.length < MIN_PLAYERS) return
       void run(() => ({ phase: 'building', phase_data: {} }), {
@@ -194,19 +190,8 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
   // A short beat so "Building your game…" does not just flash by.
   useDelayed(built, 900, () => void run(nextStep))
 
-  // --- Wit Dispute: move on when both answers are in, or the timer runs out --------------
-  const secondsLeft = useCountdown(room.phase === 'wit_answer' ? room.phase_data.deadline : null)
-  const answersIn = room.phase === 'wit_answer' ? currentAnswers({ ...state, room }).length : 0
-  useDelayed(room.phase === 'wit_answer' && answersIn >= 2, 700, () => void run(nextStep))
-  // 1.5 s of grace so an answer sent at the buzzer still lands.
-  useDelayed(room.phase === 'wit_answer' && secondsLeft === 0, 1500, () => void run(nextStep))
-
-  // --- Wit Dispute: reveal when everyone who can vote has voted ----------------------------
-  const voters = room.phase === 'wit_vote' ? eligibleVoters({ ...state, room }) : []
-  const votesIn = state.votes.filter(
-    (v) => v.prompt_index === room.phase_data.promptIndex && voters.some((p) => p.id === v.voter_id),
-  ).length
-  useDelayed(room.phase === 'wit_vote' && voters.length > 0 && votesIn >= voters.length, 900, () => void run(nextStep))
+  // An older room can finish with the current two-game flow after a frontend update.
+  useDelayed(room.phase.startsWith('wit_'), 0, () => void run(nextStep))
 
   const props: HostScreenProps = { state, room, act }
   let screen
@@ -229,7 +214,7 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
     case 'wit_answer':
     case 'wit_vote':
     case 'wit_reveal':
-      screen = <WitScreen {...props} secondsLeft={secondsLeft} />
+      screen = <Building />
       break
     case 'realtalk':
       screen = <RealTalk {...props} />

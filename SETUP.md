@@ -25,11 +25,12 @@ Easiest way:
 1. In the dashboard, open **SQL Editor > New query**.
 2. For a new database, run `supabase/migrations/0001_init.sql` first.
 3. Run `supabase/migrations/20261113012216_quiz_variety.sql` to add the three-answer quiz and replay resets. For an existing database, start with this migration.
-4. Run each migration once, in filename order.
+4. Run `supabase/migrations/20261116004911_room_community.sql` for room descriptions, the twelve-player cap, and the planner/RSVP/update tables.
+5. Run each migration once, in filename order.
 
 Or with the CLI, after step 3's `login` and `link`: `supabase db push`.
 
-Apply the quiz migration before publishing the updated frontend. Existing voice answers stay available with their original question. Redeploy `build-game` after syncing the updated shared files so it receives all three answers and the spot matching tags.
+Apply both upgrade migrations before publishing the updated frontend. Existing voice answers stay available with their original question. Redeploy `build-game` after syncing the updated shared files so it receives all three answers and the spot matching tags.
 
 ## 3. Link the CLI to the project
 
@@ -45,8 +46,8 @@ supabase link --project-ref YOUR_PROJECT_REF
 The migration already adds the tables to Realtime. To confirm:
 
 1. Open **Database > Publications** and click `supabase_realtime`.
-2. These five tables should be switched on: `rooms`, `players`, `wit_answers`,
-   `wit_votes`, `tier_placements`.
+2. Confirm `rooms`, `players`, `tier_placements`, `room_plans`, `room_rsvps`, and
+   `room_posts` are switched on. Existing Wit tables can remain in the publication for older clients.
 3. `player_locations` must stay **off**. It holds the private location data.
 
 If a table is off, switch it on. Without Realtime the game still works but each screen
@@ -142,4 +143,17 @@ The mic and location need HTTPS, so real phones need the deployed site.
 | `/wizard` says content note "build-game failed" | Function not deployed | Step 6. |
 | Function logs say `SUPABASE_SERVICE_ROLE_KEY is missing` | Project uses only the new key system | In **Edge Functions > Secrets**, add `SUPABASE_SERVICE_ROLE_KEY` set to the project's secret (service role) key. |
 | "Hold to talk" never appears on an iPhone | Siri and Dictation are off, or not on HTTPS | Expected. The typing box is the fallback. |
-| A 7th person cannot join | Rooms hold 6 players | Expected. |
+| A 7th person cannot join | The room community migration is missing | Apply `20261116004911_room_community.sql`; the cap is twelve. |
+
+## Updating an existing hosted game
+
+1. Apply any pending upgrade migrations in filename order, including `20261116004911_room_community.sql`.
+2. Run `npm run sync` and redeploy `build-game` with its generated `_shared` dependencies.
+   The updated generator produces two games and the correct Real Talk count for 10–12 players.
+3. Deploy the updated frontend using the existing Supabase URL and publishable/anon key.
+4. Follow the twelve-player and shared-room checks in `TESTING.md`.
+
+The community migration grants the existing API roles access to the three new tables,
+enables RLS, and adds Realtime subscriptions. It uses the existing classroom prototype's
+public access model. Photos are bounded JPEG data stored with posts, so there is no new
+Storage bucket or environment variable to provision.

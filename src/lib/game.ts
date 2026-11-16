@@ -4,7 +4,6 @@ import backupJson from '../data/backup-content.json'
 import spotsJson from '../data/spots.json'
 import { rankSpots } from '../shared/geo.ts'
 import { buildBackupContent } from '../shared/backup.ts'
-import { MIN_PLAYERS, QUICK_PLAY_PROMPTS } from '../shared/quiz.ts'
 import { REAL_TALK_QUESTIONS } from '../shared/question-bank.ts'
 import { REALTALK_LEVELS } from '../shared/types.ts'
 import type { BackupContent, GameContent, PlayerRow, RealTalkLevel, RoomRow, Spot } from '../shared/types.ts'
@@ -15,11 +14,6 @@ export const BACKUP = backupJson as BackupContent
 
 export function spotById(id: string | undefined): Spot | undefined {
   return SPOTS.find((s) => s.id === id)
-}
-
-/** Quick play: 2 prompts. Full game: one prompt per player, so everyone answers twice. */
-export function witCountFor(quickPlay: boolean, playerCount: number): number {
-  return quickPlay ? QUICK_PLAY_PROMPTS : Math.max(MIN_PLAYERS, playerCount)
 }
 
 const BUILD_TIMEOUT_MS = 25_000
@@ -54,7 +48,6 @@ export async function buildGame(room: RoomRow, players: PlayerRow[]): Promise<'f
 
 export function localBackup(room: RoomRow, players: PlayerRow[], note?: string): GameContent {
   const content = buildBackupContent(players, BACKUP, rankSpots(SPOTS, null), {
-    witCount: witCountFor(room.quick_play, players.length),
     seed: room.round - 1,
   })
   // Location is not readable from the browser, so there is no distance estimate here.

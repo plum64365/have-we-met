@@ -2,7 +2,7 @@ import { IconArrow, IconSwap } from '../components/ui.tsx'
 import { patchRoom } from '../lib/api.ts'
 import { randomFrom, spareQuestions } from '../lib/game.ts'
 import type { HostScreenProps } from '../pages/Host.tsx'
-import { REALTALK_STEPS } from '../shared/machine.ts'
+import { realTalkSequence } from '../shared/machine.ts'
 import { REALTALK_LEVELS } from '../shared/types.ts'
 
 const LEVEL_NAMES = ['Light', 'Real', 'Deep']
@@ -10,9 +10,10 @@ const LEVEL_NAMES = ['Light', 'Real', 'Deep']
 export function RealTalk({ state, room, act }: HostScreenProps) {
   const d = room.phase_data
   const step = d.step ?? 0
-  const level = Math.min(2, Math.floor(step / 3))
+  const sequence = realTalkSequence(room.content)
+  const level = REALTALK_LEVELS.indexOf(sequence[step]?.level ?? 'light')
   const first = state.players.find((p) => p.id === d.firstPlayerId)
-  const isLast = step + 1 >= REALTALK_STEPS
+  const isLast = step + 1 >= sequence.length
 
   const swap = () => {
     const spare = randomFrom(spareQuestions(REALTALK_LEVELS[level], room.content, d.question ? [d.question] : []))
@@ -24,7 +25,7 @@ export function RealTalk({ state, room, act }: HostScreenProps) {
       <header className="host-head">
         <div>
           <p className="kicker">
-            Real Talk · phones away · question {step + 1} of {REALTALK_STEPS}
+            Real Talk · phones away · question {step + 1} of {sequence.length}
           </p>
           <ol className="depth" aria-label={`Depth: level ${level + 1} of 3, ${LEVEL_NAMES[level]}`}>
             {LEVEL_NAMES.map((name, i) => (

@@ -1,21 +1,26 @@
+import { useRef } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
+import { RoomCommunity } from '../components/RoomCommunity.tsx'
 import { Blob, IconClock, IconPin, Logo } from '../components/ui.tsx'
 import { spotById } from '../lib/game.ts'
 import type { HostScreenProps } from '../pages/Host.tsx'
 import { strongestPairs } from '../shared/profile.ts'
 
 export function Hangout({ state, room, act }: HostScreenProps) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const roomLink = `${window.location.origin}/room/${room.code}`
   const content = room.content
   if (!content) return null
   const spot = spotById(content.hangout.spot_id)
   const minutes = content.computed?.minutes_away ?? null
-  const pairs = strongestPairs(state.players, 2)
+  const pairs = strongestPairs(state.players, 1)
   const player = (id: string) => state.players.find((p) => p.id === id)
 
   return (
     <div className="hang">
       <header className="host-head">
         <div>
-          <p className="kicker">That's the game. Now make it real.</p>
+          <p className="kicker">You’ve met. Make the next plan.</p>
           <h1 className="host-h1">Your hangout idea</h1>
         </div>
         <Logo small />
@@ -57,8 +62,8 @@ export function Hangout({ state, room, act }: HostScreenProps) {
             return (
               <div className={`card pad pair ${i === 0 ? 'tilt-r' : ''}`} key={`${pair.a}${pair.b}`}>
                 <p className="pair-names">
-                  <Blob color={a.avatar} size={52} />
-                  <Blob color={b.avatar} size={52} />
+                  <Blob color={a.avatar} size={38} />
+                  <Blob color={b.avatar} size={38} />
                   <span>
                     {a.name} + {b.name}
                   </span>
@@ -73,11 +78,20 @@ export function Hangout({ state, room, act }: HostScreenProps) {
               </div>
             )
           })}
+          <div className="hang-connect card pad">
+            <QRCodeSVG value={roomLink} size={110} marginSize={1} />
+            <div><p>Scan to plan, post a photo, and keep in touch.</p><strong>Room {room.code}</strong></div>
+          </div>
+          <button className="btn btn-cyan" onClick={() => dialog.current?.showModal()}>Plan & share</button>
           <button className="btn btn-big" onClick={act.again}>
             Play again
           </button>
         </section>
       </div>
+      <dialog className="card community-dialog" ref={dialog} aria-label="Room planner and updates">
+        <button className="btn btn-white btn-small dialog-close" onClick={() => dialog.current?.close()}>Close</button>
+        <RoomCommunity room={room} players={state.players} editable />
+      </dialog>
     </div>
   )
 }

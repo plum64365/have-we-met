@@ -2,7 +2,7 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchRoomByCode, fetchRoomTables } from '../lib/api.ts'
 import { supabase } from '../lib/supabase.ts'
-import type { PlayerRow, RoomRow, TierPlacementRow, WitAnswerRow, WitVoteRow } from '../shared/types.ts'
+import type { PlayerRow, RoomRow, TierPlacementRow } from '../shared/types.ts'
 
 export interface Me {
   role: 'host' | 'wizard' | 'player'
@@ -17,8 +17,6 @@ export interface RoomState {
   room: RoomRow | null
   players: PlayerRow[]
   /** Current round only. */
-  answers: WitAnswerRow[]
-  votes: WitVoteRow[]
   placements: TierPlacementRow[]
   /** Player ids connected right now, from Realtime Presence. */
   onlineIds: string[]
@@ -61,8 +59,6 @@ export function useRoom(code: string | undefined, me: Me): RoomState {
   const [error, setError] = useState<string | null>(null)
   const [room, setRoom] = useState<RoomRow | null>(null)
   const [players, setPlayers] = useState<PlayerRow[]>([])
-  const [answers, setAnswers] = useState<WitAnswerRow[]>([])
-  const [votes, setVotes] = useState<WitVoteRow[]>([])
   const [placements, setPlacements] = useState<TierPlacementRow[]>([])
   const [onlineIds, setOnlineIds] = useState<string[]>([])
   const [connected, setConnected] = useState(false)
@@ -92,8 +88,6 @@ export function useRoom(code: string | undefined, me: Me): RoomState {
       if (seq !== fetchSeq.current) return
       acceptRoom(found)
       setPlayers(tables.players)
-      setAnswers(tables.answers)
-      setVotes(tables.votes)
       setPlacements(tables.placements)
       setError(null)
       setForCode(code)
@@ -128,12 +122,6 @@ export function useRoom(code: string | undefined, me: Me): RoomState {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter }, (c: Change) =>
         setPlayers((list) => applyChange(list, c, idKey)),
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wit_answers', filter }, (c: Change) =>
-        setAnswers((list) => applyChange(list, c, idKey)),
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wit_votes', filter }, (c: Change) =>
-        setVotes((list) => applyChange(list, c, idKey)),
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tier_placements', filter }, (c: Change) =>
         setPlacements((list) => applyChange(list, c, placementKey)),
@@ -178,8 +166,6 @@ export function useRoom(code: string | undefined, me: Me): RoomState {
   }, [refresh])
 
   const round = room?.round ?? 1
-  const roundAnswers = useMemo(() => answers.filter((a) => a.round === round), [answers, round])
-  const roundVotes = useMemo(() => votes.filter((v) => v.round === round), [votes, round])
   const roundPlacements = useMemo(() => placements.filter((p) => p.round === round), [placements, round])
   const sortedPlayers = useMemo(
     () => [...players].sort((a, b) => a.joined_at.localeCompare(b.joined_at) || a.id.localeCompare(b.id)),
@@ -192,8 +178,6 @@ export function useRoom(code: string | undefined, me: Me): RoomState {
     error,
     room,
     players: sortedPlayers,
-    answers: roundAnswers,
-    votes: roundVotes,
     placements: roundPlacements,
     onlineIds,
     connected,

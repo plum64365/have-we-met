@@ -1,6 +1,6 @@
-import { IconArrow, IconEyes, IconPhone } from '../components/ui.tsx'
+import { IconArrow, IconEyes } from '../components/ui.tsx'
 import type { HostScreenProps } from '../pages/Host.tsx'
-import { witPromptCount } from '../shared/machine.ts'
+import { realTalkSequence } from '../shared/machine.ts'
 import { interestCounts } from '../shared/profile.ts'
 
 export function CommonGround({ state, room, act }: HostScreenProps) {
@@ -8,7 +8,6 @@ export function CommonGround({ state, room, act }: HostScreenProps) {
   const total = state.players.length
   const top = interestCounts(state.players).slice(0, 4)
   if (!content) return null
-  const prompts = witPromptCount(room)
 
   return (
     <div className="cg">
@@ -53,18 +52,9 @@ export function CommonGround({ state, room, act }: HostScreenProps) {
             <IconEyes size={22} /> Phones away
           </p>
         </article>
-        <article className="card game-card game-wit">
-          <p className="game-kicker">Game 2 · Wit Dispute</p>
-          <h3>
-            {prompts} prompt{prompts === 1 ? '' : 's'} written about you
-          </h3>
-          <p className="phones-badge out">
-            <IconPhone size={22} /> Phones out
-          </p>
-        </article>
         <article className="card game-card game-real">
-          <p className="game-kicker">Game 3 · Real Talk</p>
-          <h3>9 questions, light to deep</h3>
+          <p className="game-kicker">Game 2 · Real Talk</p>
+          <h3>{realTalkSequence(content).length} questions, light to deep</h3>
           <p className="phones-badge away">
             <IconEyes size={22} /> Phones away
           </p>

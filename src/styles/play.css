@@ -278,49 +278,6 @@ body[data-theme='pink'] .phone-top {
   line-height: 1.35;
 }
 
-/* Wit Dispute on the phone */
-.phone-timer {
-  align-self: flex-end;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 12px;
-  font-weight: 900;
-  background: var(--yellow);
-  border: var(--outline-thin);
-  border-radius: 999px;
-}
-.phone-timer.low {
-  background: #ffe3ec;
-}
-.wit-phone-prompt {
-  font-family: var(--font-head);
-  font-weight: 400 !important;
-  font-size: 24px !important;
-  line-height: 1.15;
-}
-.counter {
-  align-self: flex-end;
-  margin-top: -8px;
-  font-size: 15px;
-  font-weight: 800;
-  color: #3d3456;
-}
-.vote {
-  gap: 18px;
-}
-.on-color {
-  color: var(--white);
-  text-align: center;
-  text-shadow: 3px 3px 0 var(--ink);
-}
-.btn-vote {
-  min-height: 96px;
-  padding: 16px 18px;
-  font-size: 24px;
-  overflow-wrap: anywhere;
-}
-
 .quiz-fields {
   border: 0;
   padding: 0;

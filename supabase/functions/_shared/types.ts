@@ -22,7 +22,7 @@ export type ContentSource = 'ai' | 'backup' | 'wizard'
 export type RealTalkLevel = 'light' | 'real' | 'deep'
 export const REALTALK_LEVELS: RealTalkLevel[] = ['light', 'real', 'deep']
 
-/** The generated games. The first five keys are exactly the shape requested from the AI. */
+/** Generated content. The legacy wit array is empty in new games. */
 export interface GameContent {
   tierlist: { topic: string; reason: string; items: string[] }
   wit: { prompt: string; players: string[] }[]
@@ -69,6 +69,8 @@ export interface PhaseData {
 export interface RoomRow {
   id: string
   code: string
+  title?: string
+  description?: string
   phase: Phase
   phase_data: PhaseData
   rev: number
@@ -103,24 +105,6 @@ export interface VoiceAnswer {
   answer: string
 }
 
-export interface WitAnswerRow {
-  id: string
-  room_id: string
-  round: number
-  prompt_index: number
-  player_id: string
-  text: string
-}
-
-export interface WitVoteRow {
-  id: string
-  room_id: string
-  round: number
-  prompt_index: number
-  voter_id: string
-  answer_id: string
-}
-
 export interface TierPlacementRow {
   room_id: string
   round: number
@@ -146,8 +130,6 @@ export interface Spot {
 
 export interface BackupCategory {
   tierlist: { topic: string; items: string[] }
-  /** Templates. {name} becomes a player's name and {interest} the group's top interest. */
-  wit: string[]
   realtalk: { light: string[]; real: string[]; deep: string[] }
   hangout: { activity: string; spot_categories: string[] }
 }
@@ -155,4 +137,31 @@ export interface BackupCategory {
 export interface BackupContent {
   categories: Record<string, BackupCategory>
   general: BackupCategory
+}
+
+export interface RoomPlan {
+  room_id: string
+  activity: string
+  location: string
+  starts_at: string | null
+  duration_minutes: number
+  chat_url: string
+  rev: number
+}
+
+export type RsvpStatus = 'going' | 'maybe' | 'cant'
+export interface RoomRsvp {
+  room_id: string
+  player_id: string
+  status: RsvpStatus
+  plan_rev: number
+}
+
+export interface RoomPost {
+  id: string
+  room_id: string
+  player_id: string
+  body: string
+  photo: string | null
+  created_at: string
 }

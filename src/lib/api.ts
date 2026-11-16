@@ -1,5 +1,6 @@
 // Every database write in the app goes through this file.
 
+import { MAX_PLAYERS } from '../shared/quiz.ts'
 import type { Step } from '../shared/machine.ts'
 import type {
   AvatarColor,
@@ -8,8 +9,6 @@ import type {
   RoomRow,
   Tier,
   TierPlacementRow,
-  WitAnswerRow,
-  WitVoteRow,
 } from '../shared/types.ts'
 import { randomRoomCode } from './roomCode.ts'
 import { supabase } from './supabase.ts'
@@ -35,24 +34,18 @@ export async function fetchRoomByCode(code: string): Promise<RoomRow | null> {
 
 export interface RoomTables {
   players: PlayerRow[]
-  answers: WitAnswerRow[]
-  votes: WitVoteRow[]
   placements: TierPlacementRow[]
 }
 
 export async function fetchRoomTables(roomId: string): Promise<RoomTables> {
-  const [players, answers, votes, placements] = await Promise.all([
+  const [players, placements] = await Promise.all([
     supabase.from('players').select().eq('room_id', roomId).order('joined_at'),
-    supabase.from('wit_answers').select().eq('room_id', roomId),
-    supabase.from('wit_votes').select().eq('room_id', roomId),
     supabase.from('tier_placements').select().eq('room_id', roomId),
   ])
-  const failed = [players, answers, votes, placements].find((r) => r.error)
+  const failed = [players, placements].find((r) => r.error)
   if (failed?.error) throw new Error(failed.error.message)
   return {
     players: (players.data ?? []) as PlayerRow[],
-    answers: (answers.data ?? []) as WitAnswerRow[],
-    votes: (votes.data ?? []) as WitVoteRow[],
     placements: (placements.data ?? []) as TierPlacementRow[],
   }
 }
@@ -67,12 +60,12 @@ export class JoinError extends Error {
   }
 }
 
-/** Adds this phone to the room. The 6-player cap and lobby-only rule are enforced by the database. */
+/** Adds this phone to the room. The 12-player cap and lobby-only rule are enforced by the database. */
 export async function joinRoom(roomId: string, playerId: string, name: string, avatar: AvatarColor): Promise<void> {
   const { error } = await supabase.from('players').insert({ id: playerId, room_id: roomId, name: name.trim(), avatar })
   if (!error) return
   if (error.message.includes('ROOM_FULL')) {
-    throw new JoinError('full', 'This room already has 6 players. Cheer them on from the big screen!')
+    throw new JoinError('full', `This room already has ${MAX_PLAYERS} players. Catch the next game!`)
   }
   if (error.message.includes('GAME_STARTED')) {
     throw new JoinError('started', 'This game already started. Catch the next round!')
@@ -145,22 +138,6 @@ export async function playAgain(room: RoomRow): Promise<boolean> {
     { phase: 'lobby', phase_data: {} },
     { round: room.round + 1, content: null, content_source: null, build_status: 'idle' },
   )
-}
-
-export async function submitAnswer(room: RoomRow, promptIndex: number, playerId: string, text: string): Promise<void> {
-  const { error } = await supabase.from('wit_answers').upsert(
-    { room_id: room.id, round: room.round, prompt_index: promptIndex, player_id: playerId, text },
-    { onConflict: 'room_id,round,prompt_index,player_id' },
-  )
-  if (error) throw new Error(error.message)
-}
-
-export async function castVote(room: RoomRow, promptIndex: number, voterId: string, answerId: string): Promise<void> {
-  const { error } = await supabase
-    .from('wit_votes')
-    .insert({ room_id: room.id, round: room.round, prompt_index: promptIndex, voter_id: voterId, answer_id: answerId })
-  // A second vote on the same prompt hits the unique constraint; the first one stands.
-  if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message)
 }
 
 export async function placeTier(room: RoomRow, itemIndex: number, tier: Tier): Promise<void> {

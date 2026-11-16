@@ -3,15 +3,14 @@
 A multiplayer icebreaker game for people who have just met, built as a prototype for
 COGS 123 (social computing) at UCSD.
 
-One screen on a projector runs the game. Two to six players join on their phones by
-scanning a QR code, take a short quiz, and then play three short games that are
+One screen on a projector runs the game. Two to twelve players join on their phones by
+scanning a QR code, take a short quiz, and then play two short games that are
 generated from what the group has in common:
 
 1. **Tier List** (phones away): rank 8 things together, out loud.
-2. **Wit Dispute** (phones out): two players answer a prompt, everyone else votes.
-3. **Real Talk** (phones away): nine questions that go from light to deep.
+2. **Real Talk** (phones away): nine questions for 2–9 players, twelve for 10–12 players. Everyone starts a turn.
 
-It ends with a hangout suggestion for the group.
+It ends with a hangout suggestion and a shared room for planning a meetup, responding to invitations, posting photos and updates, and returning later.
 
 ## How it is built
 
@@ -32,6 +31,7 @@ rejoins as the same player.
 |---|---|---|
 | `/host` | The laptop on the projector | Creates a room and drives every phase change |
 | `/play`, `/play/:code` | Phones | Join, take the quiz, answer and vote |
+| `/room/:code` | Returning players | Saved plan, calendar export, RSVPs, chat invite, photos and updates |
 | `/wizard/:code` | A teammate, quietly | Edit content, swap prompts, force the next phase. Not linked from anywhere. |
 | `/preview` | Developers (`npm run dev` only) | Every screen with fake data, no Supabase needed |
 
@@ -76,7 +76,6 @@ That page works with no Supabase project at all.
 ```
 lobby -> building -> common_ground
   -> PHONES AWAY -> tierlist
-  -> PHONES OUT  -> wit_answer -> wit_vote -> wit_reveal   (repeats per prompt)
   -> PHONES AWAY -> realtalk
   -> hangout -> (Play again) -> lobby
 ```
@@ -97,7 +96,7 @@ supabase/functions/_shared/            Generated copy of src/shared + src/data. 
 ## Content and the AI
 
 When the game starts, `build-game` sends Gemini a group profile (first names, interests,
-this-or-that picks, and three short answers with their original questions) and asks for all three games as
+this-or-that picks, and three short answers with their original questions) and asks for both games as
 JSON. The reply is validated. If the call fails, takes more than 15 seconds or returns
 something invalid, the content is built from `src/data/backup-content.json` instead. If the
 function itself cannot be reached, the host screen builds the same backup content in the
@@ -123,3 +122,22 @@ to `good_for`, with proximity breaking ties. Activities and reasons stay tied to
 - Replace the placeholder spots in `src/data/spots.json` (see `src/data/spots.README.md`).
 - Check the Gemini model name in `supabase/functions/build-game/index.ts`.
 - Do a full run with real phones on the deployed site (`TESTING.md`).
+
+## Room introductions and staying in touch
+
+The host can set a room name and welcome description in the lobby. Both are saved and
+shown to joining players. All twelve seats can reuse the existing six avatar colors.
+
+At the end, the host opens **Plan & share** to set an activity, meeting place, date, duration,
+and an HTTPS group-chat invite from their chat app. Players RSVP from their phones and can
+export the plan as a calendar event. Updating a plan asks players to confirm their RSVP again.
+
+The shared `/room/CODE` page holds photo and text updates across games. Photos are resized
+and re-encoded as JPEGs on the device, with a 300,000-character limit, then saved with the
+post. This release needs no additional Storage bucket. The board loads twenty posts at a
+time. A saved room link and the home page's room-code form let players return later.
+Player and host recognition use the browser they originally joined or hosted with.
+
+The room board follows this account-free classroom prototype's existing access model.
+Plans, chat invites, photos, and updates are shared through the room link, and the database
+API policies permit public reads. Returning access uses the original browser identity.
