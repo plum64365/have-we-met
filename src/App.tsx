@@ -15,6 +15,8 @@ const StoryDetail = lazy(() =>
 const StoryEditor = lazy(() =>
   import('./pages/Stories.tsx').then((module) => ({ default: module.StoryEditor })),
 )
+const StoryEdit = lazy(() => import('./pages/Stories.tsx').then((module) => ({ default: module.StoryEdit })))
+const MyStories = lazy(() => import('./pages/Stories.tsx').then((module) => ({ default: module.MyStories })))
 
 // Design preview with fake data. Dev server only: this import is dropped from production builds.
 const Preview = import.meta.env.DEV ? lazy(() => import('./pages/Preview.tsx')) : null
@@ -58,7 +60,9 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/stories" element={<Stories />} />
           <Route path="/stories/write" element={<StoryEditor />} />
+          <Route path="/stories/mine" element={<MyStories />} />
           <Route path="/stories/:id" element={<StoryDetail />} />
+          <Route path="/stories/:id/edit" element={<StoryEdit />} />
           <Route path="/host" element={isConfigured ? <Host /> : <NotConfigured />} />
           <Route path="/room/:code" element={isConfigured ? <Room /> : <NotConfigured />} />
           <Route path="/play" element={isConfigured ? <Play /> : <NotConfigured />} />

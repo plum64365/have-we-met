@@ -162,7 +162,30 @@ more detailed context guidance for a future, separately authorized generator upd
 
 Exploration checklist progress, story drafts, bookmarks, and recent-room shortcuts stay
 on the same browser. Existing room plans and room updates still use their existing shared
-backend. Public story publishing is deliberately unconnected. The stories feed contains no
-invented testimonials and starts empty. `src/data/community-stories.json` is an empty feed
-placeholder, used only to build and test the interface. Your groupmate can replace that
-read path and connect the draft form to live publishing in a separate backend task.
+backend.
+
+## Live stories
+
+`/stories` is a public feed of stories that groups chose to publish. Nothing from a room
+(posts, photos, player names, introductions or quiz answers) is ever published automatically,
+and the feed contains no invented testimonials.
+
+- **Identity.** The stories pages use a separate Supabase client with a persisted
+  *anonymous* Auth session (`hwm.stories.auth.v1` in localStorage). Readers never sign in.
+  The first publish creates an anonymous user that owns the story. The game client stays
+  account-free; browser-generated player ids are not used as proof of ownership.
+- **Database.** `supabase/migrations/20261117220000_live_stories.sql` adds `public.stories`
+  with RLS: anyone reads published stories, only the author creates, edits, unpublishes or
+  deletes. `author_id` and consent are not selectable through the API (column grants), and
+  `my_stories()` lists the caller's own stories. A trigger manages ownership, revision,
+  timestamps and a 30-story-per-author limit. Photos are bounded JPEG data on the row, so
+  they are exactly as visible as their story. No Storage bucket is needed.
+- **Publishing.** Requires title, group name, story text and the permission checkbox
+  (checked again server-side). The draft and photo are saved locally before every attempt
+  and kept on failure. The story id comes from the draft, and edits are conditional on the
+  revision, so retries never duplicate or silently overwrite.
+- **Returning authors.** **Your stories** (`/stories/mine`) lists stories published from this
+  browser with Edit, Unpublish/Publish again and Delete. Authorship lives in that browser:
+  clearing site data loses the ability to edit.
+- **Bookmarks** are per-browser story ids, loaded by id so they do not depend on the feed
+  page. Removed or unpublished bookmarks are reported and can be cleared.

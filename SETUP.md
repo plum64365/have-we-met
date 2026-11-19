@@ -26,7 +26,9 @@ Easiest way:
 2. For a new database, run `supabase/migrations/0001_init.sql` first.
 3. Run `supabase/migrations/20261113012216_quiz_variety.sql` to add the three-answer quiz and replay resets. For an existing database, start with this migration.
 4. Run `supabase/migrations/20261116004911_room_community.sql` for room descriptions, the twelve-player cap, and the planner/RSVP/update tables.
-5. Run each migration once, in filename order.
+5. Run `supabase/migrations/20261117220000_live_stories.sql` for live stories, then turn on
+   **Authentication > Sign In / Providers > Allow anonymous sign-ins** (see "Live stories" below).
+6. Run each migration once, in filename order.
 
 Or with the CLI, after step 3's `login` and `link`: `supabase db push`.
 
@@ -144,21 +146,36 @@ The mic and location need HTTPS, so real phones need the deployed site.
 | Function logs say `SUPABASE_SERVICE_ROLE_KEY is missing` | Project uses only the new key system | In **Edge Functions > Secrets**, add `SUPABASE_SERVICE_ROLE_KEY` set to the project's secret (service role) key. |
 | "Hold to talk" never appears on an iPhone | Siri and Dictation are off, or not on HTTPS | Expected. The typing box is the fallback. |
 | A 7th person cannot join | The room community migration is missing | Apply `20261116004911_room_community.sql`; the cap is twelve. |
+| `/stories` says "That did not load" | Stories migration missing | Apply `20261117220000_live_stories.sql`. |
+| Publishing says it is "not switched on" | Anonymous sign-ins are off | **Authentication > Sign In / Providers > Allow anonymous sign-ins**. |
 
-## Latest campus and stories update — frontend only
+## Live stories update
 
-For this update, deploy only the frontend. Keep the existing Vite environment variables.
-No migration, Edge Function deployment, new secret, or new Storage bucket is required.
-`npm run dev` and `npm run build` no longer synchronize files into the function directory.
-`npm run sync` remains an explicit command for a future, separate backend release.
+This release adds live story publishing. It needs one migration and one Auth setting.
+No Edge Function deployment, new secret, new environment variable, or Storage bucket.
+Do not redeploy `build-game` for this release. `npm run sync` is only for a deliberate
+Edge Function deployment.
 
-The campus ending and contextual questions run in the browser using the existing schema.
-The public stories screens and browser-saved drafts are ready. Live publishing and a live
-public feed are left for the backend owner to implement separately. Do not present the
-empty feed as a collection of existing friendships or seed invented student testimonials.
+1. Check which migrations the project already has (**Database > Migrations**, or
+   `supabase migration list`). `20261116004911_room_community.sql` must be applied first.
+2. In **SQL Editor > New query**, paste and run `supabase/migrations/20261117220000_live_stories.sql`
+   once. It only creates new objects; existing rooms, players and posts are untouched.
+   With the CLI instead: `supabase db push` (applies only pending migrations, never resets data).
+3. **Authentication > Sign In / Providers**: turn on **Allow anonymous sign-ins**.
+   Optional but recommended for a public site: enable CAPTCHA protection in
+   **Authentication > Attack Protection**, which also covers anonymous sign-ins
+   (the frontend would then need a CAPTCHA widget, which this release does not include).
+4. Deploy the frontend (push to `main`; Vercel builds with `npm run build` into `dist`).
+   Keep the existing `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+5. Run the live stories checks in `TESTING.md`.
+
+If publishing says "Story publishing is not switched on for this site yet", step 3 is missing.
+If `/stories` shows "That did not load", step 2 is missing.
+
+The campus ending and contextual questions still run in the browser using the existing schema.
 
 The instructions below cover the earlier backend-dependent twelve-player/community
-release. They are not additional deployment steps for this frontend update.
+release. They are not additional deployment steps for this update.
 
 ## Updating an existing hosted game
 

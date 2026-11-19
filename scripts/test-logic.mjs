@@ -15,6 +15,7 @@ import { calendarForPlan, inviteUrl } from '../src/shared/community.ts'
 import { contextualRoom } from '../src/shared/contextual.ts'
 import { CAMPUS_QUESTIONS, exploresCampus, INTRODUCTION_PREFIX, introductionFor, introductionThemes, quizForContext } from '../src/shared/experience.ts'
 import { validateContent } from '../src/shared/validate.ts'
+import { feedCursorFilter, mergeFeed, sameContent, storyErrorMessage, StoryNotice, storyProblems } from '../src/lib/storyRules.ts'
 
 const load = (file) => JSON.parse(readFileSync(new URL(`../src/data/${file}`, import.meta.url), 'utf8'))
 const BACKUP = load('backup-content.json')
@@ -340,5 +341,42 @@ test('calendar files preserve UTC, chosen duration and escaped text', () => {
   assert.ok(calendar.includes('SUMMARY:Snacks\\, games\\; together'))
   assert.ok(calendar.includes('LOCATION:Campus\\nTable 2'))
   assert.equal(calendarForPlan({ ...plan, starts_at: null }, room, ''), null)
+})
+const STORY = {
+  title: 'Sunset walk',
+  group_name: 'Lunch Crew',
+  body: 'We met in the game and walked to the cliffs.',
+  place: 'Torrey Pines',
+  next_plan: '',
+  outcome: 'first_hangout',
+  photo: null,
+  consent_confirmed: true,
+}
+test('stories need content and explicit permission before publishing', () => {
+  assert.deepEqual(storyProblems(STORY), [])
+  assert.ok(storyProblems({ ...STORY, consent_confirmed: false }).some((p) => /agreed/.test(p)))
+  assert.ok(storyProblems({ ...STORY, title: '   ' }).some((p) => /title/.test(p)))
+  assert.ok(storyProblems({ ...STORY, body: 'x'.repeat(1801) }).some((p) => /1800/.test(p)))
+  assert.ok(storyProblems({ ...STORY, photo: 'data:image/png;base64,AAAA' }).length)
+  assert.ok(storyProblems({ ...STORY, outcome: 'famous' }).length)
+})
+test('story retries recognise identical content after trimming', () => {
+  assert.ok(sameContent(STORY, { ...STORY, title: ' Sunset walk  ' }))
+  assert.ok(!sameContent(STORY, { ...STORY, place: 'Price Center' }))
+})
+test('story feed pages are keyset ordered and never duplicate', () => {
+  const at = '2026-11-17T20:00:00.123456+00:00'
+  const a = { id: 'aaaaaaaa-0000-4000-8000-000000000001', published_at: at }
+  const b = { id: 'bbbbbbbb-0000-4000-8000-000000000001', published_at: at }
+  const c = { id: 'cccccccc-0000-4000-8000-000000000001', published_at: '2026-11-17T21:00:00+00:00' }
+  assert.deepEqual(mergeFeed([c, b], [b, a]).map((s) => s.id[0]), ['c', 'b', 'a'])
+  assert.equal(feedCursorFilter(b), `published_at.lt."${at}",and(published_at.eq."${at}",id.lt.${b.id})`)
+  assert.throws(() => feedCursorFilter({ id: 'x),or(true', published_at: at }))
+})
+test('story errors become author-facing messages', () => {
+  assert.match(storyErrorMessage(new Error('anonymous_provider_disabled')), /not switched on/)
+  assert.match(storyErrorMessage(new Error('STORY_LIMIT')), /30 stories/)
+  assert.match(storyErrorMessage(new TypeError('Failed to fetch')), /connection/)
+  assert.equal(storyErrorMessage(new StoryNotice('Custom.', 'CONFLICT')), 'Custom.')
 })
 console.log(`\n${passed} checks passed`)

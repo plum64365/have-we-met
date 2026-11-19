@@ -67,14 +67,34 @@ model documented in `README.md`. Test photos should be appropriate for the share
    Progress is browser-local, separate from the existing shared planner.
 4. Return home and open the recent-room shortcut. Existing planner, RSVP, photo and chat
    features should remain available.
-5. Open `/stories` without backend configuration. Confirm an honest empty state and
-   filters for first hangout, became friends, still meeting, and saved stories. Test story
-   cards, details, bookmark persistence, and missing story IDs with a browser-only fixture.
-   Do not put fictional test stories in the published data file.
-6. Open `/stories/write`. Save a partial draft, reload, and check that it resumes. Add and
-   remove a photo, save again, and verify the preview after reload. Delete the saved draft.
-   Test storage failure with a clear error. Live publishing must remain visibly unavailable
-   and story actions must make no backend requests.
 
-Frontend checks can use in-memory API responses. No Supabase service, SQL, migration,
-or function deployment is needed to test this release's new behavior.
+## Live stories (deployed site)
+
+Use two browser profiles: **A** (author) and **B** (reader, never published).
+Delete your test stories from **Your stories** afterwards; do not leave fictional stories up.
+
+1. **Draft.** In A, open `/stories/write`. Save a partial draft, reload, and check it resumes.
+   Add a photo, save, reload: the preview remains. Publishing with an empty field or without
+   the permission checkbox shows what is missing and sends nothing.
+2. **Publish failure.** In A, go offline (DevTools > Network > Offline) and publish. An error
+   says the draft and photo are still saved. Reload: both are there.
+3. **Publish.** Back online, publish a story without a photo, then one with a photo. Each opens
+   its page with "Your story is live". Click Publish twice quickly / retry after a failure:
+   only one story appears.
+4. **Read.** In B, open `/stories` and each story URL. Both stories show without signing in.
+5. **Return and edit.** In A, refresh, open **Your stories**, edit a story, re-tick the
+   permission box, publish changes. B sees the change after a refresh.
+6. **Unpublish.** In A, unpublish one. B's feed and story URL no longer show it
+   ("Story unavailable"); A still sees it marked "Only you can see this". Publish again.
+7. **Direct API.** With B's anon key (and with a separate anonymous session), try
+   `PATCH /rest/v1/stories?id=eq.<A's id>` and `DELETE …`: zero rows change.
+   `GET /rest/v1/stories?select=author_id` is refused, and `GET …?status=eq.unpublished`
+   returns nothing for anyone but the author.
+8. **Filters and pages.** With more than 12 stories, More stories loads the next page with no
+   duplicates; each outcome filter shows only its stories.
+9. **Bookmarks.** In B, save a story, switch filters and pages, then open **Saved stories**:
+   it is there. Unpublish it in A: B's saved view reports it is no longer available and
+   offers to remove it.
+10. Confirm the campus game, room planner, RSVPs, photos and updates still work.
+
+`npm run test:logic` also covers story validation, retry matching, feed cursors and error text.
