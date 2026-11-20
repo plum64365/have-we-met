@@ -263,3 +263,44 @@
 .hang-pairs .host-h2 {
   font-size: 32px;
 }
+.player-kick {
+  margin-left: auto;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+  padding: 6px 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  flex: none;
+}
+.player-kick:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.player-card > div {
+  min-width: 0;
+}
+.player-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lobby-save-error {
+  color: var(--white);
+  background: #9c1647;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 17px;
+}
+.cg-games {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.game-habet {
+  background: var(--pink);
+}
+.cg-games .game-card h3 {
+  font-size: 26px;
+}

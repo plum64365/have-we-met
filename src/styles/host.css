@@ -681,3 +681,186 @@
   align-self: flex-end;
   margin-top: 6px;
 }
+.habet {
+  display: flex;
+  flex-direction: column;
+}
+.habet-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 30px;
+  flex: 1;
+  min-height: 0;
+}
+.habet-turn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  min-width: 0;
+}
+.habet-turn h2 {
+  font-size: 38px;
+  overflow-wrap: anywhere;
+}
+.habet-turn p {
+  font-size: 22px;
+  line-height: 1.4;
+}
+.habet-turn .input {
+  width: 100%;
+  font-size: 26px;
+}
+.habet-person {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.habet-person h2 {
+  flex: 1;
+}
+.habet-clock {
+  display: grid;
+  place-items: center;
+  background: var(--yellow);
+  border: var(--outline);
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  font-size: 42px;
+  flex: none;
+}
+.habet-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+}
+.habet-side h2 {
+  font-size: 28px;
+  margin-bottom: 14px;
+}
+.habet-alphabet {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.habet-alphabet span {
+  display: grid;
+  place-items: center;
+  background: var(--cyan);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  height: 36px;
+  font-weight: 900;
+}
+.habet-alphabet .blocked {
+  background: #e0dce8;
+  color: #635b74;
+  text-decoration: line-through;
+}
+.habet-answers {
+  min-height: 0;
+  overflow: auto;
+  flex: 1;
+}
+.habet-answers ul {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 19px;
+  margin-bottom: 14px;
+}
+.habet-answers li {
+  overflow-wrap: anywhere;
+}
+.habet-answers li strong {
+  background: var(--yellow);
+  border-radius: 5px;
+  padding: 0 5px;
+}
+.habet .hint {
+  font-size: 16px;
+}
+.party-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(920px, 100%);
+  margin: auto;
+}
+.party-main h2 {
+  font-size: 36px;
+  overflow-wrap: anywhere;
+}
+.party-main p {
+  font-size: 24px;
+  line-height: 1.4;
+}
+.party-main .input {
+  width: 100%;
+}
+.party-main .step {
+  gap: 12px;
+}
+.party-main input[type='range'] {
+  width: 100%;
+  accent-color: var(--purple);
+}
+.party-spectrum {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.party-spectrum-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 22px;
+}
+.party-spectrum-track {
+  position: relative;
+  height: 28px;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  background: linear-gradient(90deg, var(--cyan), var(--yellow), var(--pink));
+}
+.party-spectrum-track span {
+  position: absolute;
+  transform: translate(-50%, -25%);
+  color: var(--ink);
+  font-size: 44px;
+}
+.party-votes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.party-votes .btn {
+  font-size: 20px;
+}
+.party-reason {
+  font-size: 17px;
+  text-align: center;
+  margin-top: 16px;
+}
+.game-pick-reason {
+  font-size: 15px;
+  line-height: 1.35;
+}
+.habet .kicker {
+  color: var(--ink);
+}
+.party-phone h2 {
+  font-size: 28px;
+}
+.habet-winners {
+  max-height: 120px;
+  overflow: auto;
+}
+.party-main,
+.habet-turn {
+  min-height: 0;
+  overflow-y: auto;
+}

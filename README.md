@@ -4,13 +4,14 @@ A multiplayer icebreaker game for people who have just met, built as a prototype
 COGS 123 (social computing) at UCSD.
 
 One screen on a projector runs the game. Two to twelve players join on their phones by
-scanning a QR code, take a short quiz, and then play two short games that are
+scanning a QR code, take a short quiz, and then play three short games that are
 generated from what the group has in common:
 
 1. **Tier List** (phones away): rank 8 things together, out loud.
-2. **Real Talk** (phones away): nine questions for 2–9 players, twelve for 10–12 players. Everyone starts a turn.
+2. **Matched middle game**: Habet, Wavelength, or Imposter, selected from shared interests and quiz preferences.
+3. **Talk It Out** (phones away): six questions, two each for Light, Real, and Deep. Larger groups have paired starters so everyone gets a starting turn.
 
-It ends with a hangout suggestion and a shared room for planning a meetup, responding to invitations, posting photos and updates, and returning later. New-student rooms get campus-focused speaking questions, Tier List and Real Talk, plus a three-step campus discovery task. Optional personal introductions and voice answers inform neutral discussion themes.
+It ends with a hangout suggestion and a shared room for planning a meetup, responding to invitations, posting photos and updates, and returning later. New-student rooms get campus-focused speaking questions, Tier List and Talk It Out, plus a three-step campus discovery task. Optional personal introductions and voice answers inform neutral discussion themes.
 
 ## How it is built
 
@@ -34,7 +35,7 @@ rejoins as the same player.
 | `/room/:code` | Returning players | Saved plan, calendar export, RSVPs, chat invite, photos and updates |
 | `/stories` | Everyone | Community stories screen with outcome filters and browser-saved bookmarks |
 | `/stories/:id` | Everyone | Story detail and follow-up plan |
-| `/stories/write` | Returning groups | A story draft with optional photo, saved on this browser. Live publishing is not connected yet |
+| `/stories/write` | Returning groups | Draft and publish a consented story with an optional photo |
 | `/wizard/:code` | A teammate, quietly | Edit content, swap prompts, force the next phase. Not linked from anywhere. |
 | `/preview` | Developers (`npm run dev` only) | Every screen with fake data, no Supabase needed |
 
@@ -78,8 +79,9 @@ That page works with no Supabase project at all.
 
 ```
 lobby -> building -> common_ground
-  -> PHONES AWAY -> tierlist
-  -> PHONES AWAY -> realtalk
+  -> tierlist
+  -> matched middle game (Habet / Wavelength / Imposter)
+  -> realtalk (six questions)
   -> hangout -> (Play again) -> lobby
 ```
 
@@ -189,3 +191,36 @@ and the feed contains no invented testimonials.
   clearing site data loses the ability to edit.
 - **Bookmarks** are per-browser story ids, loaded by id so they do not depend on the feed
   page. Removed or unpublished bookmarks are reported and can be cleared.
+
+## Adaptive game catalog and reliable starts
+
+`src/shared/game-catalog.json` defines the three middle-game choices. The selection uses
+actual interest counts and this-or-that preferences. Habet favors quick category play,
+Wavelength favors comparing opinions and cooperative preferences, and Imposter requires
+at least three players and a sufficiently shared topic. The overview explains the pick.
+The catalog and chosen game are written into the existing `rooms.phase_data` JSON when
+the game is prepared. That choice stays fixed for the round and is selected again on replay.
+There is no additional AI call or new database table.
+
+Habet uses blocked letters, shrinking turn timers, a pause control, and a two-minute cap.
+Wavelength has two clue-and-guess rounds. Imposter gives everyone one clue turn, followed
+by a group vote. Wavelength and Imposter show role-specific cards on phones. This remains
+the existing classroom prototype with publicly accessible room data; those cards provide
+an honor-system game mechanic, not server-enforced secrecy against API inspection.
+
+Middle games reuse the existing `wit_answer` phase value with an explicit Habet or party
+state marker. They do not render the removed Quiplash/Wit game. This avoids a phase schema
+migration. Finishing Tier List or a middle-game result continues automatically after a
+short pause; the host can stay on the result or move ahead immediately.
+
+Room edits, join details, and unfinished quiz answers are drafted on the same browser.
+Pressing Save or Next still requires a successful server write before the UI advances.
+The normal host start waits for every joined player's current-round quiz, and editing
+room details pauses auto-start. The host can remove a ghost seat from the lobby after
+confirmation, which discloses removal of that player’s attached room posts and RSVPs. Removed players see an explanation. A refresh reuses the same browser
+identity, with session storage as a fallback when persistent storage is unavailable.
+A different browser profile remains a different player.
+
+This update changes no Supabase migrations, functions, or settings. It preserves the live
+stories implementation from commit b969686. Deploy the frontend through the existing
+Vercel project and keep its current environment variables.

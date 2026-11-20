@@ -7,7 +7,7 @@ export interface ValidateContext {
   aliases?: Record<string, string>
   /** Valid spot ids, best first. An unknown spot_id is replaced by the first one. */
   spotIds: string[]
-  /** Three per level normally, four for ten to twelve players. */
+  /** Two per level. Extra questions from an older generator are trimmed. */
   questionsPerLevel?: number
   /** Preferred, grounded recommendation for generated content and invalid spot repairs. */
   preferredHangout?: GameContent['hangout']
@@ -59,7 +59,7 @@ export function validateContent(raw: unknown, ctx: ValidateContext): ValidateRes
 
   const rt = raw.realtalk
   if (!isRecord(rt)) return { ok: false, error: 'realtalk is missing' }
-  const count = ctx.questionsPerLevel ?? 3
+  const count = ctx.questionsPerLevel ?? 2
   const light = textList(rt.light, count, count, 180)
   const real = textList(rt.real, count, count, 180)
   const deep = textList(rt.deep, count, count, 180)

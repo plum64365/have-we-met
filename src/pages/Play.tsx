@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Logo } from '../components/ui.tsx'
 import { useRoom } from '../hooks/useRoom.ts'
@@ -6,6 +6,7 @@ import type { Me } from '../hooks/useRoom.ts'
 import { useTheme } from '../hooks/useTheme.ts'
 import type { Theme } from '../hooks/useTheme.ts'
 import { useWakeLock } from '../hooks/useWakeLock.ts'
+import { readDraft, writeDraft } from '../lib/drafts.ts'
 import { touchPlayer } from '../lib/api.ts'
 import { getPlayerId } from '../lib/identity.ts'
 import { cleanRoomCode } from '../lib/roomCode.ts'
@@ -27,7 +28,8 @@ export default function Play() {
   const params = useParams()
   const code = params.code ? cleanRoomCode(params.code) : ''
   // No code in the URL yet: just the join form, which navigates to /play/CODE.
-  if (code.length !== 4) return <JoinOnly badCode={params.code && code.length !== 4 ? params.code : undefined} />
+  if (code.length !== 4)
+    return <JoinOnly badCode={params.code && code.length !== 4 ? params.code : undefined} />
   return <PlayRoom code={code} key={code} />
 }
 
@@ -36,7 +38,10 @@ function JoinOnly({ badCode }: { badCode?: string }) {
   return (
     <main className="phone">
       <Logo />
-      <JoinForm initialCode="" notice={badCode ? `"${badCode}" is not a room code. Codes are 4 letters.` : undefined} />
+      <JoinForm
+        initialCode=""
+        notice={badCode ? `"${badCode}" is not a room code. Codes are 4 letters.` : undefined}
+      />
     </main>
   )
 }
@@ -46,10 +51,18 @@ function PlayRoom({ code }: { code: string }) {
   const me: Me = useMemo(() => ({ role: 'player', playerId }), [playerId])
   const state = useRoom(code, me)
   const { room } = state
+  const [joinedBefore, setJoinedBefore] = useState(() => readDraft(`hwm.joined.v1.${playerId}`, false))
   const player = state.players.find((p) => p.id === playerId)
 
   useTheme(themeFor(room))
   useWakeLock(Boolean(player && room && room.phase !== 'hangout'))
+
+  useEffect(() => {
+    if (player) {
+      setJoinedBefore(true)
+      writeDraft(`hwm.joined.v1.${playerId}`, true)
+    }
+  }, [player, playerId])
 
   // Heartbeat, as a record of when this phone was last around.
   const joined = Boolean(player)
@@ -85,17 +98,43 @@ function PlayRoom({ code }: { code: string }) {
     return (
       <main className="phone">
         <Logo />
-        <JoinForm initialCode="" notice={`No room with the code ${code}. Check the big screen and try again.`} />
+        <JoinForm
+          initialCode=""
+          notice={`No room with the code ${code}. Check the big screen and try again.`}
+        />
       </main>
     )
   }
 
   if (!player) {
+    if (joinedBefore)
+      return (
+        <main className="phone">
+          <Logo />
+          <Message
+            title="You were removed from the room"
+            body="The host removed your seat. Check with them before joining again."
+          >
+            <button
+              className="btn"
+              onClick={() => {
+                setJoinedBefore(false)
+                writeDraft(`hwm.joined.v1.${playerId}`, false)
+              }}
+            >
+              Back to join screen
+            </button>
+          </Message>
+        </main>
+      )
     if (room.phase !== 'lobby') {
       return (
         <main className="phone">
           <Logo />
-          <Message title="This game already started" body="Watch the big screen and jump in on the next round!" />
+          <Message
+            title="This game already started"
+            body="Watch the big screen and jump in on the next round!"
+          />
         </main>
       )
     }

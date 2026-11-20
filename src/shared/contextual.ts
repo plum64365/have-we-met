@@ -3,37 +3,45 @@ import { exploresCampus, introductionThemes, themeQuestion } from './experience.
 import { rankSpots } from './geo.ts'
 import type { BackupContent, PlayerRow, RoomRow, Spot } from './types.ts'
 
-/** A deterministic browser adaptation, so this release needs no Edge Function or schema changes. */
+/** Browser adaptation keeps older generator replies compatible with six-question play. */
 export function contextualRoom(
   room: RoomRow,
   players: PlayerRow[],
   backup: BackupContent,
   spots: Spot[],
 ): RoomRow {
-  if (!room.content || room.content_source === 'wizard') return room
+  if (!room.content) return room
+  const content = {
+    ...room.content,
+    realtalk: {
+      light: room.content.realtalk.light.slice(0, 2),
+      real: room.content.realtalk.real.slice(0, 2),
+      deep: room.content.realtalk.deep.slice(0, 2),
+    },
+  }
+  if (room.content_source === 'wizard') return { ...room, content }
   if (exploresCampus(room)) {
     const campus = buildBackupContent(players, backup, rankSpots(spots, null), { room, seed: room.round - 1 })
     return {
       ...room,
       content: {
-        ...room.content,
+        ...content,
         tierlist: campus.tierlist,
         realtalk: campus.realtalk,
         hangout: campus.hangout,
         campus_task: campus.campus_task,
-        computed: { ...room.content.computed, minutes_away: null },
+        computed: { ...content.computed, minutes_away: null },
       },
     }
   }
   const themes = introductionThemes(players, room)
-  if (!themes.length) return room
-  const realtalk = { ...room.content.realtalk }
+  const realtalk = { ...content.realtalk }
   for (const level of ['light', 'real', 'deep'] as const) {
-    const tailored = themes.slice(0, 2).map((theme) => themeQuestion(theme)[level])
+    const tailored = themes.slice(0, 1).map((theme) => themeQuestion(theme)[level])
     realtalk[level] = [
       ...tailored,
       ...realtalk[level].filter((question) => !tailored.includes(question)),
-    ].slice(0, realtalk[level].length)
+    ].slice(0, 2)
   }
-  return { ...room, content: { ...room.content, realtalk } }
+  return { ...room, content: { ...content, realtalk } }
 }

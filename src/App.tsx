@@ -6,7 +6,7 @@ import Home from './pages/Home.tsx'
 import Host from './pages/Host.tsx'
 import Play from './pages/Play.tsx'
 import Room from './pages/Room.tsx'
-import Wizard from './pages/Wizard.tsx'
+const Wizard = lazy(() => import('./pages/Wizard.tsx'))
 
 const Stories = lazy(() => import('./pages/Stories.tsx').then((module) => ({ default: module.Stories })))
 const StoryDetail = lazy(() =>
@@ -52,7 +52,7 @@ export default function App() {
         fallback={
           <main className="phone">
             <Logo />
-            <p className="host-sub">Opening stories…</p>
+            <p className="host-sub">Opening…</p>
           </main>
         }
       >

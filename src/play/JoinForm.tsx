@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Blob } from '../components/ui.tsx'
 import { fetchRoomByCode, JoinError, joinRoom } from '../lib/api.ts'
+import { useDraft } from '../lib/drafts.ts'
 import { getPlayerId } from '../lib/identity.ts'
 import { cleanRoomCode } from '../lib/roomCode.ts'
 import { AVATARS, MAX_PLAYERS } from '../shared/quiz.ts'
@@ -28,9 +29,14 @@ const AVATAR_NAMES: Record<AvatarColor, string> = {
 
 export function JoinForm({ initialCode, room, players = [], notice, onJoined }: Props) {
   const navigate = useNavigate()
-  const [code, setCode] = useState(initialCode)
-  const [name, setName] = useState('')
-  const [avatar, setAvatar] = useState<AvatarColor | null>(null)
+  const [code, setCode] = useDraft(`hwm.join.code.v1.${initialCode || 'manual'}`, initialCode)
+  const [profile, setProfile, draftSaved] = useDraft<{ name: string; avatar: AvatarColor | null }>(
+    `hwm.join.profile.v1.${code}`,
+    { name: '', avatar: null },
+  )
+  const { name, avatar } = profile
+  const setName = (name: string) => setProfile({ ...profile, name })
+  const setAvatar = (avatar: AvatarColor) => setProfile({ ...profile, avatar })
   const [error, setError] = useState<string | null>(notice ?? null)
   const [busy, setBusy] = useState(false)
 
@@ -113,15 +119,16 @@ export function JoinForm({ initialCode, room, players = [], notice, onJoined }: 
                   onChange={() => setAvatar(color)}
                 />
                 <Blob color={color} size={64} />
-                <span className="sr-only">
-                  {AVATAR_NAMES[color]}
-                </span>
+                <span className="sr-only">{AVATAR_NAMES[color]}</span>
               </label>
             )
           })}
         </div>
       </fieldset>
 
+      {!draftSaved && (
+        <p className="hint">This browser could not keep your name and avatar for your next visit.</p>
+      )}
       {error && (
         <p className="notice" role="alert">
           {error}

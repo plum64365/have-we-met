@@ -14,7 +14,7 @@ import type { GameContent, Phase, RoomRow } from '../shared/types.ts'
 import { validateContent } from '../shared/validate.ts'
 
 const WIZARD: Me = { role: 'wizard' }
-const PHASES: Phase[] = ['lobby', 'common_ground', 'transition', 'tierlist', 'realtalk', 'hangout']
+const PHASES: Phase[] = ['lobby', 'common_ground', 'transition', 'tierlist', 'wit_answer', 'realtalk', 'hangout']
 
 /**
  * The Wizard of Oz console. A teammate opens /wizard/CODE on their own laptop to fix
@@ -120,7 +120,7 @@ function Console({ state, room }: { state: RoomState; room: RoomRow }) {
             Jump to{' '}
             <select value={jump} onChange={(e) => setJump(e.target.value as Phase)}>
               {PHASES.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>{p === 'wit_answer' ? 'Matched middle game' : p === 'realtalk' ? 'Talk It Out' : p}</option>
               ))}
             </select>
           </label>
@@ -158,7 +158,7 @@ function Console({ state, room }: { state: RoomState; room: RoomRow }) {
                   <button
                     className="wbtn small"
                     onClick={() => {
-                      if (window.confirm(`Remove ${p.name} from the room?`)) void attempt(`Remove ${p.name}`, () => removePlayer(p.id))
+                      if (window.confirm(`Remove ${p.name} from the room? Any room posts and RSVPs linked to this player will also be removed.`)) void attempt(`Remove ${p.name}`, () => removePlayer(p.id))
                     }}
                   >
                     Remove

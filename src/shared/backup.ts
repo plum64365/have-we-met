@@ -151,8 +151,8 @@ export function buildBackupContent(
   for (const level of REALTALK_LEVELS) {
     // One question from each top interest, then general ones, with enough turns for the group.
     const pool = unique([
-      ...themes
-        .slice(0, 2)
+      ...rotate(themes, seed + REALTALK_LEVELS.indexOf(level))
+        .slice(0, 1)
         .map((theme) => (campus ? campusThemeQuestion(theme) : themeQuestion(theme))[level]),
       ...(campus ? rotate(CAMPUS_QUESTIONS[level], seed) : []),
       ...cats.slice(0, 2).flatMap((c) => rotate(c.cat.realtalk[level], seed).slice(0, 1)),

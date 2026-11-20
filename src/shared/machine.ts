@@ -1,3 +1,5 @@
+import { GAME_CATALOG, middleChoice, middleSeed, startParty } from './middle-games.ts'
+import { startHabet } from './habet.ts'
 import { REALTALK_LEVELS } from './types.ts'
 import type { GameContent, Phase, PhaseData, PlayerRow, RoomRow } from './types.ts'
 
@@ -7,8 +9,8 @@ import type { GameContent, Phase, PhaseData, PlayerRow, RoomRow } from './types.
  * wizard call these. Phones never do.
  *
  * lobby -> building -> common_ground
- *   -> transition(phones_away, tierlist) -> tierlist
- *   -> transition(phones_away, realtalk) -> realtalk (9–12 questions) -> hangout
+ *   -> tierlist -> matched middle game (existing wit_answer phase, marked in phase_data)
+ *   -> realtalk (six questions) -> hangout
  */
 
 export interface Snapshot {
@@ -36,7 +38,7 @@ function rosterOf(s: Snapshot): string[] {
 }
 
 function freshRoster(s: Snapshot): string[] {
-  // Both games happen out loud. Sleeping phones still belong to people at the table.
+  // Keep the whole joined roster, including phones that sleep during shared-screen play.
   return byJoinOrder(s.players).map((p) => p.id)
 }
 
@@ -44,26 +46,57 @@ function transition(next: 'tierlist' | 'realtalk', roster: string[]): Step {
   return { phase: 'transition', phase_data: { kind: 'phones_away', next, roster } }
 }
 
+function gameMeta(s: Snapshot) {
+  return { middle_game: middleChoice(s.room, s.players), game_catalog: GAME_CATALOG }
+}
+function enterMiddle(s: Snapshot): Step {
+  const roster = rosterOf(s)
+  const players = roster.flatMap((id) => s.players.find((player) => player.id === id) ?? [])
+  const meta = gameMeta(s)
+  return {
+    phase: 'wit_answer',
+    phase_data: {
+      ...meta,
+      roster,
+      ...(meta.middle_game.id === 'habet'
+        ? { habet: startHabet(players, s.now, s.room) }
+        : { party: startParty(meta.middle_game, roster, middleSeed(s.room)) }),
+    },
+  }
+}
+
 function enterTierlist(s: Snapshot): Step {
   const roster = rosterOf(s)
-  return { phase: 'tierlist', phase_data: { scribeId: roster[0] ?? null, roster } }
+  return { phase: 'tierlist', phase_data: { ...gameMeta(s), scribeId: roster[0] ?? null, roster } }
 }
 
 export function realTalkSequence(content: GameContent | null) {
-  return content ? REALTALK_LEVELS.flatMap((level) => content.realtalk[level].map((question) => ({ level, question }))) : []
+  return content
+    ? REALTALK_LEVELS.flatMap((level) =>
+        content.realtalk[level].slice(0, 2).map((question) => ({ level, question })),
+      )
+    : []
 }
 
 function enterRealtalk(s: Snapshot, step: number, roster: string[]): Step {
   const content = s.room.content
   const sequence = realTalkSequence(content)
-  if (!content || step >= sequence.length) return { phase: 'hangout', phase_data: { roster } }
+  if (!content || step >= sequence.length) return { phase: 'hangout', phase_data: { ...gameMeta(s), roster } }
   const entry = sequence[step]
+  const firstPlayerIds =
+    roster.length <= 6
+      ? roster.length
+        ? [roster[step % roster.length]]
+        : []
+      : roster.filter((_, index) => index % 6 === step)
   return {
     phase: 'realtalk',
     phase_data: {
+      ...gameMeta(s),
       step,
       question: entry.question,
-      firstPlayerId: roster.length ? roster[step % roster.length] : null,
+      firstPlayerId: firstPlayerIds[0] ?? null,
+      firstPlayerIds,
       swaps: 0,
       roster,
     },
@@ -81,16 +114,32 @@ export function nextStep(s: Snapshot): Step | null {
   const d = s.room.phase_data
   switch (s.room.phase) {
     case 'building':
-      return { phase: 'common_ground', phase_data: {} }
+      return { phase: 'common_ground', phase_data: { ...gameMeta(s) } }
     case 'common_ground':
-      return transition('tierlist', freshRoster(s))
+      return enterTierlist(s)
     case 'transition':
       return enter(s, d.next ?? 'tierlist')
     case 'tierlist':
+      return enterMiddle(s)
     case 'wit_answer':
+      if (d.party?.kind === 'wavelength' && d.party.stage === 'reveal' && d.party.round < 1)
+        return {
+          phase: 'wit_answer',
+          phase_data: {
+            ...gameMeta(s),
+            roster: rosterOf(s),
+            party: startParty(
+              middleChoice(s.room, s.players),
+              rosterOf(s),
+              middleSeed(s.room),
+              d.party.round + 1,
+            ),
+          },
+        }
+      return enterRealtalk(s, 0, rosterOf(s))
     case 'wit_vote':
     case 'wit_reveal':
-      return transition('realtalk', rosterOf(s))
+      return enterRealtalk(s, 0, rosterOf(s))
     case 'realtalk':
       return enterRealtalk(s, (d.step ?? 0) + 1, rosterOf(s))
     default:
@@ -103,13 +152,13 @@ export function skipGameStep(s: Snapshot): Step | null {
   const d = s.room.phase_data
   switch (s.room.phase) {
     case 'tierlist':
-      return transition('realtalk', rosterOf(s))
+      return enterMiddle(s)
     case 'wit_answer':
     case 'wit_vote':
     case 'wit_reveal':
-      return transition('realtalk', rosterOf(s))
+      return enterRealtalk(s, 0, rosterOf(s))
     case 'realtalk':
-      return { phase: 'hangout', phase_data: { roster: d.roster } }
+      return { phase: 'hangout', phase_data: { ...gameMeta(s), roster: d.roster } }
     default:
       return nextStep(s)
   }
@@ -122,13 +171,14 @@ export function jumpTo(s: Snapshot, phase: Phase): Step {
     case 'tierlist':
       return enterTierlist(s)
     case 'wit_answer':
+      return enterMiddle(s)
     case 'wit_vote':
     case 'wit_reveal':
       return enterRealtalk(s, 0, roster)
     case 'realtalk':
       return enterRealtalk(s, 0, roster)
     case 'hangout':
-      return { phase: 'hangout', phase_data: { roster } }
+      return { phase: 'hangout', phase_data: { ...gameMeta(s), roster } }
     case 'transition':
       return transition('tierlist', roster)
     default:

@@ -12,12 +12,20 @@ export function RealTalk({ state, room, act }: HostScreenProps) {
   const step = d.step ?? 0
   const sequence = realTalkSequence(room.content)
   const level = REALTALK_LEVELS.indexOf(sequence[step]?.level ?? 'light')
-  const first = state.players.find((p) => p.id === d.firstPlayerId)
+  const firstNames = (d.firstPlayerIds?.length ? d.firstPlayerIds : [d.firstPlayerId])
+    .map((id) => state.players.find((p) => p.id === id)?.name)
+    .filter(Boolean)
+    .join(' + ')
   const isLast = step + 1 >= sequence.length
 
   const swap = () => {
-    const spare = randomFrom(spareQuestions(REALTALK_LEVELS[level], room.content, d.question ? [d.question] : [], room))
-    if (spare) void patchRoom(room, { phase_data: { ...d, question: spare, swaps: (d.swaps ?? 0) + 1 } }).then(state.refresh)
+    const spare = randomFrom(
+      spareQuestions(REALTALK_LEVELS[level], room.content, d.question ? [d.question] : [], room),
+    )
+    if (spare)
+      void patchRoom(room, { phase_data: { ...d, question: spare, swaps: (d.swaps ?? 0) + 1 } }).then(
+        state.refresh,
+      )
   }
 
   return (
@@ -25,18 +33,22 @@ export function RealTalk({ state, room, act }: HostScreenProps) {
       <header className="host-head">
         <div>
           <p className="kicker">
-            Real Talk · phones away · question {step + 1} of {sequence.length}
+            Talk It Out · phones away · question {step + 1} of {sequence.length}
           </p>
           <ol className="depth" aria-label={`Depth: level ${level + 1} of 3, ${LEVEL_NAMES[level]}`}>
             {LEVEL_NAMES.map((name, i) => (
-              <li key={name} className={i === level ? 'on' : i < level ? 'past' : ''} aria-current={i === level ? 'step' : undefined}>
+              <li
+                key={name}
+                className={i === level ? 'on' : i < level ? 'past' : ''}
+                aria-current={i === level ? 'step' : undefined}
+              >
                 {i + 1} · {name}
               </li>
             ))}
           </ol>
         </div>
         <button className="btn btn-white" disabled={act.busy} onClick={act.skipGame}>
-          Skip to next game <IconArrow />
+          Finish talking <IconArrow />
         </button>
       </header>
 
@@ -46,7 +58,10 @@ export function RealTalk({ state, room, act }: HostScreenProps) {
 
       <footer className="real-foot">
         <p className="real-first">
-          <strong>{first?.name ?? 'Whoever is bravest'}</strong> answers first, then pass it left
+          <strong>{firstNames || 'Whoever is ready'}</strong>{' '}
+          {d.firstPlayerIds && d.firstPlayerIds.length > 1
+            ? 'start together, then invite everyone in'
+            : 'answers first, then pass it left'}
         </p>
         <div className="head-buttons">
           <button className="btn btn-cyan" onClick={swap}>

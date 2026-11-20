@@ -149,6 +149,23 @@ The mic and location need HTTPS, so real phones need the deployed site.
 | `/stories` says "That did not load" | Stories migration missing | Apply `20261117220000_live_stories.sql`. |
 | Publishing says it is "not switched on" | Anonymous sign-ins are off | **Authentication > Sign In / Providers > Allow anonymous sign-ins**. |
 
+## Latest gameplay fixes and adaptive middle games
+
+Deploy the frontend only with the existing build command and environment variables.
+This release requires no new migration, Edge Function deployment, secret, or Auth setting.
+The three-game catalog, chosen middle game, and current game progress use the existing
+room JSON state. Do not run `npm run sync` for this frontend deployment.
+
+Refresh all host and phone screens before starting a new round. Confirm the quiz can be
+completed, a host can remove a ghost seat, the chosen middle game works, and Talk It Out
+ends after six questions. Follow the new tests in `TESTING.md`.
+
+If a save reports a missing `voice_answers`, `quiz_round`, room title, or description
+column, the existing earlier migrations have not been applied to that environment.
+The project owner should check those previously required upgrades. Browser drafts are
+kept and the app reports the failed save; this frontend change does not silently pretend
+to migrate or repair that database.
+
 ## Live stories update
 
 This release adds live story publishing. It needs one migration and one Auth setting.
@@ -181,7 +198,7 @@ release. They are not additional deployment steps for this update.
 
 1. Apply any pending upgrade migrations in filename order, including `20261116004911_room_community.sql`.
 2. Run `npm run sync` and redeploy `build-game` with its generated `_shared` dependencies.
-   The updated generator produces two games and the correct Real Talk count for 10–12 players.
+   Those earlier generator changes support the twelve-player release. The current browser limits Talk It Out to six questions and selects its middle game separately.
 3. Deploy the updated frontend using the existing Supabase URL and publishable/anon key.
 4. Follow the twelve-player and shared-room checks in `TESTING.md`.
 

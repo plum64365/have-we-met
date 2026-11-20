@@ -2,6 +2,7 @@ import { IconEyes, IconPencil, IconSpark } from '../components/ui.tsx'
 import type { RoomState } from '../hooks/useRoom.ts'
 import type { PlayerRow, RoomRow } from '../shared/types.ts'
 import { RoomCommunity } from '../components/RoomCommunity.tsx'
+import { PartyCard } from './PartyCard.tsx'
 import { Message } from './Message.tsx'
 
 interface Props {
@@ -20,6 +21,10 @@ export function PhoneGame({ state, room, player }: Props) {
       if (room.phase_data.scribeId === player.id) {
         return <Message icon={<IconPencil size={72} />} title="You're the scribe!" body="Head to the laptop. The group debates, you tap the tier." />
       }
+      return <PhonesAway />
+    case 'wit_answer':
+      if (room.phase_data.party) return <PartyCard key={`${room.round}:${room.phase_data.party.kind}:${room.phase_data.party.round}`} game={room.phase_data.party} playerId={player.id} />
+      if (room.phase_data.habet) return <Message icon={<IconEyes size={72} />} title="Habet · Look up!" body="Take turns saying an answer with an unused first letter. The host enters it on the shared screen." />
       return <PhonesAway />
     case 'hangout':
       return <RoomCommunity room={room} players={state.players} player={player} />

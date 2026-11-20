@@ -7,18 +7,24 @@ const playerKey = (code: string) => `hwm.player.${code.toUpperCase()}`
 
 function read(key: string): string | null {
   try {
-    return localStorage.getItem(key)
+    return localStorage.getItem(key) ?? sessionStorage.getItem(key)
   } catch {
-    return null
+    try {
+      return sessionStorage.getItem(key)
+    } catch {
+      return null
+    }
   }
 }
 
 function write(key: string, value: string | null) {
-  try {
-    if (value === null) localStorage.removeItem(key)
-    else localStorage.setItem(key, value)
-  } catch {
-    // Private mode or storage disabled: the game still works, a refresh just will not rejoin.
+  for (const storage of [() => localStorage, () => sessionStorage]) {
+    try {
+      if (value === null) storage().removeItem(key)
+      else storage().setItem(key, value)
+    } catch {
+      /* Try the other browser store before relying on memory. */
+    }
   }
 }
 

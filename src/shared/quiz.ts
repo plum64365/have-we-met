@@ -127,9 +127,9 @@ export function quizForRound(roomId: string, round: number): QuizSelection {
   const offset = Math.max(0, round - 1)
   const voice = (['everyday', 'story', 'hypothetical'] as const).map((category) => {
     const pool = VOICE_QUESTIONS.filter((q) => q.category === category)
-    return pool[(seed % pool.length + offset) % pool.length]
+    return pool[((seed % pool.length) + offset) % pool.length]
   })
-  const start = (seed % THIS_OR_THAT.length + offset * 5) % THIS_OR_THAT.length
+  const start = ((seed % THIS_OR_THAT.length) + offset * 5) % THIS_OR_THAT.length
   const thisOrThat = Array.from({ length: 5 }, (_, i) => THIS_OR_THAT[(start + i) % THIS_OR_THAT.length])
   return { voice, thisOrThat }
 }
@@ -145,6 +145,16 @@ export function quizComplete(player: PlayerRow, round: number): boolean {
   return player.quiz_done && (player.quiz_round ?? round) === round
 }
 
+export function canStartGame(players: PlayerRow[], round: number): boolean {
+  return (
+    players.length >= MIN_PLAYERS &&
+    players.length <= MAX_PLAYERS &&
+    players.every((player) => quizComplete(player, round))
+  )
+}
+
 export function realTalkQuestionsPerLevel(playerCount: number): number {
-  return Math.max(3, Math.ceil(playerCount / 3))
+  // Keep the existing call signature; discussion length no longer grows with the group.
+  void playerCount
+  return 2
 }

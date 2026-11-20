@@ -9,7 +9,7 @@ import { REAL_TALK_QUESTIONS } from './question-bank.ts'
 import type { PlayerRow, Spot } from './types.ts'
 
 // Keep depth definitions, voice context and one worked example beside the generation rules.
-export const SYSTEM_PROMPT = `You write the content for "Have We Met?", a party icebreaker for 2 to 12 college students who have just met. They play two short games together in a classroom, Tier List and Real Talk.
+export const SYSTEM_PROMPT = `You write the content for "Have We Met?", a party icebreaker for 2 to 12 college students who have just met. They play Tier List, one middle game chosen from Habet, Wavelength and Imposter, and Talk It Out together in a classroom. Generate only Tier List and Talk It Out content; the middle game uses the app game catalog.
 
 Rules you must follow:
 - Tone: playful and PG. Friendly, never mean. This is shown on a projector in a class.

@@ -1,7 +1,7 @@
 # Test the game and shared room
 
 Use Node 22.18+ or Node 24. Run `npm run build`, `npm run lint`, and `npm run test:logic`.
-The logic suite checks the two-game flow, twelve-player turn allocation, quiz rotation,
+The logic suite checks the three-game flow, twelve-player turn allocation, quiz rotation,
 matching, calendar times and invite URL validation. `/preview` provides sample screens.
 
 ## One host and several phones
@@ -13,12 +13,12 @@ first. Start `/host` and join through `/play/CODE`.
    the introduction remains and appears on joining phones.
 2. Join two players, complete the quiz, and check that a saved speaking answer survives a
    refresh. Try speaking, typing, and passing. Finish the five this-or-that pairs.
-3. Start the game. The overview shows Tier List and Real Talk. Rank items, then advance
-   directly to Real Talk. Try swapping a question and advancing through all levels.
+3. Start the game. The overview shows Tier List, the matched middle game, and Talk It Out. Rank items, play the middle game, then continue
+   directly to Talk It Out. Try swapping a question and advancing through all levels.
 4. Finish on the hangout screen. Confirm the suggested activity matches the selected spot.
 5. Repeat with twelve players. Reuse avatar colors. All twelve cards should fit on the
    projector. Confirm that a thirteenth join is refused and all twelve players start a
-   Real Talk turn over twelve questions.
+   Talk It Out starting turn through paired starters over six questions.
 6. Refresh during Tier List and Real Talk. The item/question and starting player should
    resume. If presence is unavailable, the saved roster should still participate.
 
@@ -98,3 +98,45 @@ Delete your test stories from **Your stories** afterwards; do not leave fictiona
 10. Confirm the campus game, room planner, RSVPs, photos and updates still work.
 
 `npm run test:logic` also covers story validation, retry matching, feed cursors and error text.
+
+## Quiz persistence and open-issue regression checks
+
+- Open Customize room, edit its title/description, refresh, then reopen it. The draft should
+  remain. Simulate a rejected or zero-row server save. The dialog must stay open with an
+  error, and Save should succeed after the error is resolved.
+- A remembered lobby older than twelve hours should remain available until explicitly
+  replaced. Join by QR, enter a name/avatar, and refresh before submitting. Repeat with
+  two interest picks and an introduction, a partly typed voice answer, and two this-or-that
+  choices. Each should survive. Completing a quiz must reuse the same player ID.
+- Reject one quiz save and its final Finish request. The UI must not advance or claim
+  completion. Retry and confirm the server-backed completion.
+- With at least two joined players but one incomplete quiz, the normal Start button must
+  be disabled. Editing room details must pause auto-start. A ghost player can be removed
+  by the host so an abandoned quiz does not block the group.
+- Cancel a player removal, then confirm it. The first keeps the seat, the second removes
+  it. That player's phone should explain the removal. A rejected delete keeps the seat
+  and reports the error.
+
+## Adaptive middle-game checks
+
+- Use Food/Sports/Outdoors with short-round preferences to select Habet; use
+  Music/Fashion/Art with cooperative/watch-first preferences to select Wavelength; use
+  a strongly shared Gaming/Anime/Tech group to select Imposter. Imposter must not be
+  selected for two players. The overview reason must use actual counts.
+- Confirm all three catalog entries and the chosen game are saved in room phase data.
+  Refresh on another screen. The choice must not change mid-round.
+- Habet: accept an answer, block its first letter, reject a repeated letter, expire only
+  the current player, pause/resume across refresh, and end at one survivor or the cap.
+- Wavelength: the clue giver reads their phone card; other cards do not show a target in
+  normal UI. Record the clue, enter a group guess, reveal and score it. Play the second
+  round with the next clue giver and continue.
+- Imposter: normal phone cards show a shared word; the imposter card does not. Give one
+  clue per joined player, agree on one suspect, vote on the host, then reveal the result.
+  Treat role cards as the prototype's honor-system mechanic, not API-level secrecy.
+- Rank all eight Tier List items and let the game continue automatically. Let middle-game
+  results continue automatically. Try Stay here and the immediate Next buttons too.
+- Talk It Out must show exactly six questions, two per depth, even if a legacy generator
+  returned nine or twelve. For twelve players, collect all paired starting-player IDs and
+  verify everyone is represented. The sixth Finish must open the hangout/campus task.
+- Confirm existing stories, planner, chat and photo behavior still use their existing
+  implementation. No new Supabase setup is needed for these gameplay changes.

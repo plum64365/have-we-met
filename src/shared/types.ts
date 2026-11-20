@@ -42,6 +42,11 @@ export interface GameContent {
 
 /** rooms.phase_data. Every field is optional; which ones are set depends on the phase. */
 export interface PhaseData {
+  /** Middle games use an existing phase value so no schema migration is needed. */
+  habet?: HabetState
+  party?: PartyState
+  middle_game?: MiddleChoice
+  game_catalog?: GameCatalogEntry[]
   // transition
   kind?: 'phones_away' | 'phones_out'
   next?: 'tierlist' | 'wit_answer' | 'realtalk'
@@ -55,10 +60,11 @@ export interface PhaseData {
   /** How many Wit Dispute prompts each player has been given so far. */
   turns?: Record<string, number>
   // realtalk
-  /** 0..8. Level is floor(step / 3). */
+  /** 0..5. Two questions per depth level. */
   step?: number
   question?: string
   firstPlayerId?: string | null
+  firstPlayerIds?: string[]
   swaps?: number
   /**
    * Player ids (in join order) who were online the last time phones were out.
@@ -169,4 +175,51 @@ export interface RoomPost {
   body: string
   photo: string | null
   created_at: string
+}
+
+export interface HabetState {
+  status: 'playing' | 'complete'
+  topic: string
+  remaining: string[]
+  currentIndex: number
+  eliminated: string[]
+  blocked: string[]
+  answers: { player_id: string; text: string; letter: string }[]
+  turn: number
+  deadline: string
+  ends_at: string
+  winners: string[]
+  paused?: { turn_ms: number; game_ms: number }
+}
+
+export type MiddleGameId = 'habet' | 'wavelength' | 'imposter'
+export interface GameCatalogEntry {
+  id: MiddleGameId
+  name: string
+  min_players: number
+  interests: string[]
+  description: string
+}
+export interface MiddleChoice {
+  id: MiddleGameId
+  name: string
+  topic: string
+  reason: string
+}
+export interface PartyState {
+  kind: 'wavelength' | 'imposter'
+  stage: 'clue' | 'guess' | 'describe' | 'vote' | 'reveal'
+  round: number
+  roster: string[]
+  turn: number
+  clue_giver_id: string
+  target: number
+  left: string
+  right: string
+  clue: string
+  guess: number
+  word: string
+  imposter_id: string
+  suspect_id?: string
+  score: number
 }

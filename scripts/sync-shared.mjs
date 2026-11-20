@@ -1,7 +1,7 @@
 // Copies the shared game logic and static data into the Edge Function folder.
 // A deployed Supabase function can only rely on files under supabase/functions, so the
 // function imports these copies. src/ is the source of truth: edit there, never in _shared.
-// Runs automatically before `npm run dev` and `npm run build`.
+// Run explicitly only when preparing a separately authorized Edge Function deployment.
 
 import { cpSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -15,7 +15,7 @@ mkdirSync(out, { recursive: true })
 
 const copied = []
 for (const file of readdirSync(join(root, 'src', 'shared'))) {
-  if (!file.endsWith('.ts')) continue
+  if (!file.endsWith('.ts') && !file.endsWith('.json')) continue
   cpSync(join(root, 'src', 'shared', file), join(out, file))
   copied.push(file)
 }

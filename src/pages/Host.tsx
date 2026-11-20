@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Logo, Stage, useDelayed } from '../components/ui.tsx'
 import { CommonGround } from '../host/CommonGround.tsx'
 import { Hangout } from '../host/Hangout.tsx'
@@ -15,11 +15,16 @@ import { buildGame } from '../lib/game.ts'
 import { getHostCode, setHostCode } from '../lib/identity.ts'
 import { nextStep, skipGameStep } from '../shared/machine.ts'
 import type { Snapshot, Step } from '../shared/machine.ts'
-import { MIN_PLAYERS } from '../shared/quiz.ts'
+import { canStartGame } from '../shared/quiz.ts'
 import type { RoomRow } from '../shared/types.ts'
 
+const Habet = lazy(() => import('../host/Habet.tsx').then((module) => ({ default: module.Habet })))
+
+const PartyGame = lazy(() =>
+  import('../host/PartyGame.tsx').then((module) => ({ default: module.PartyGame })),
+)
+
 const HOST: Me = { role: 'host' }
-const STALE_ROOM_MS = 12 * 60 * 60 * 1000
 
 // Module-level so React StrictMode's double effects cannot create two rooms or build twice.
 let creating: Promise<RoomRow> | null = null
@@ -65,15 +70,10 @@ export default function Host() {
 
   const state = useRoom(code ?? undefined, HOST)
 
-  // The remembered room is gone or left over from another day: start a fresh one.
+  // Keep a remembered room across visits. Only a deleted room needs replacement.
   // (forCode guards against acting on the previous code's status right after a switch.)
-  const stale =
-    state.forCode === code &&
-    (state.status === 'missing' ||
-      (state.status === 'ready' &&
-        state.room !== null &&
-        state.room.phase === 'lobby' &&
-        Date.now() - new Date(state.room.created_at).getTime() > STALE_ROOM_MS))
+  const stale = state.forCode === code && state.status === 'missing'
+
   useEffect(() => {
     if (code && stale) {
       setHostCode(null)
@@ -94,7 +94,9 @@ export default function Host() {
           <div className="card pad host-error">
             <h2>Could not reach the game server</h2>
             <p>{error ?? state.error}</p>
-            <p>Check the Supabase URL and key in .env.local, and that the migration has been run (SETUP.md).</p>
+            <p>
+              Check the Supabase URL and key in .env.local, and that the migration has been run (SETUP.md).
+            </p>
             <button className="btn" onClick={() => (error ? makeRoom() : state.refresh())}>
               Try again
             </button>
@@ -119,7 +121,7 @@ export default function Host() {
 }
 
 function themeFor(room: RoomRow): Theme {
-  if (room.phase.startsWith('wit_')) return 'pink'
+  if (room.phase_data.habet || room.phase.startsWith('wit_')) return 'pink'
   if (room.phase === 'transition' && room.phase_data.kind === 'phones_out') return 'pink'
   if (room.phase === 'realtalk') return 'deep'
   return 'purple'
@@ -144,7 +146,9 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
     setBusy(true)
     try {
       // If the wizard moved the room first, this does nothing and the screen catches up by itself.
-      await applyStep(s.room, step, extra)
+      const saved = await applyStep(s.room, step, extra)
+      if (!saved)
+        throw new Error('The room changed before this action saved. Check the screen and try again.')
       setProblem(null)
       s.refresh()
     } catch (e) {
@@ -159,7 +163,8 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
     next: () => void run(nextStep),
     skipGame: () => void run(skipGameStep),
     start: () => {
-      if (latest.current.players.length < MIN_PLAYERS) return
+      const current = latest.current
+      if (!current.room || !canStartGame(current.players, current.room.round)) return
       void run(() => ({ phase: 'building', phase_data: {} }), {
         build_status: 'building',
         content: null,
@@ -190,8 +195,13 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
   // A short beat so "Building your game…" does not just flash by.
   useDelayed(built, 900, () => void run(nextStep))
 
-  // An older room can finish with the current two-game flow after a frontend update.
-  useDelayed(room.phase.startsWith('wit_'), 0, () => void run(nextStep))
+  // Old removed-game phases advance safely; new middle-game states keep their own flow.
+  useDelayed(
+    room.phase.startsWith('wit_') && !room.phase_data.habet && !room.phase_data.party,
+    0,
+    () => void run(nextStep),
+  )
+  useDelayed(room.phase === 'transition', 900, () => void run(nextStep))
 
   const props: HostScreenProps = { state, room, act }
   let screen
@@ -214,7 +224,17 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
     case 'wit_answer':
     case 'wit_vote':
     case 'wit_reveal':
-      screen = <Building />
+      screen = room.phase_data.party ? (
+        <Suspense fallback={<Building />}>
+          <PartyGame {...props} />
+        </Suspense>
+      ) : room.phase_data.habet ? (
+        <Suspense fallback={<Building />}>
+          <Habet {...props} />
+        </Suspense>
+      ) : (
+        <Building />
+      )
       break
     case 'realtalk':
       screen = <RealTalk {...props} />
@@ -227,7 +247,10 @@ function HostGame({ state, room, newRoom }: { state: RoomState; room: RoomRow; n
   return (
     <Stage>
       {/* key restarts the entrance animation on every phase change */}
-      <div className="host-screen" key={`${room.phase}:${room.phase_data.promptIndex ?? ''}:${room.phase_data.kind ?? ''}`}>
+      <div
+        className="host-screen"
+        key={`${room.phase}:${room.phase_data.promptIndex ?? ''}:${room.phase_data.kind ?? ''}`}
+      >
         {screen}
       </div>
       {(problem || !state.connected) && (

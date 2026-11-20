@@ -10,10 +10,12 @@ import { aiNames, funFacts, groupProfile, interestCounts, strongestPairs } from 
 import { hangoutForSpot, matchingPlayers, rankHangoutSpots } from '../src/shared/hangout.ts'
 import { userPrompt } from '../src/shared/prompts.ts'
 import { VOICE_QUESTIONS } from '../src/shared/question-bank.ts'
-import { INTERESTS, MAX_PLAYERS, realTalkQuestionsPerLevel, quizComplete, quizForRound, voiceAnswersFor } from '../src/shared/quiz.ts'
+import { INTERESTS, MAX_PLAYERS, canStartGame, realTalkQuestionsPerLevel, quizComplete, quizForRound, voiceAnswersFor } from '../src/shared/quiz.ts'
 import { calendarForPlan, inviteUrl } from '../src/shared/community.ts'
 import { contextualRoom } from '../src/shared/contextual.ts'
 import { CAMPUS_QUESTIONS, exploresCampus, INTRODUCTION_PREFIX, introductionFor, introductionThemes, quizForContext } from '../src/shared/experience.ts'
+import { GAME_CATALOG, middleChoice, middleSeed, partyClue, partyGuess, partyNextClue, partyVote, privatePartyCard, selectMiddleGame, startParty } from '../src/shared/middle-games.ts'
+import { acceptHabet, expireHabet, habetSeconds, passHabet, pauseHabet, startHabet } from '../src/shared/habet.ts'
 import { validateContent } from '../src/shared/validate.ts'
 import { feedCursorFilter, mergeFeed, sameContent, storyErrorMessage, StoryNotice, storyProblems } from '../src/lib/storyRules.ts'
 
@@ -88,7 +90,7 @@ test('no banned words in the backup content', () => {
 
 console.log('Backup builder + validator')
 for (const n of [2, 3, 6, 10, 12]) {
-  test(`${n} players receive a valid two-game session`, () => {
+  test(`${n} players receive a valid three-game session`, () => {
     const players = makePlayers(n)
     const content = buildBackupContent(players, BACKUP, SPOTS)
     const result = validateContent(content, ctxFor(players))
@@ -222,7 +224,15 @@ test('the validator rejects duplicate Real Talk questions and overly long tier i
   assert.equal(validateContent({ ...content, tierlist: { ...content.tierlist, items: ['one two three four', ...content.tierlist.items.slice(1)] } }, ctxFor(players)).ok, false)
 })
 
-console.log('Two-game flow')
+test('the host cannot start while a joined player is still taking or retrying the quiz', () => {
+  const players = makePlayers(3).map((player) => ({ ...player, quiz_round: 2 }))
+  assert.equal(canStartGame(players, 2), true)
+  assert.equal(canStartGame([{ ...players[0], quiz_done: false }, ...players.slice(1)], 2), false)
+  assert.equal(canStartGame(players, 3), false)
+  assert.equal(canStartGame(players.slice(0, 1), 2), false)
+})
+
+console.log('Three-game flow')
 for (const n of [2, 6, 10, 12]) {
   test(`${n} players reach hangout with a turn to start Real Talk`, () => {
     const players = makePlayers(n)
@@ -232,14 +242,16 @@ for (const n of [2, 6, 10, 12]) {
     const snap = () => ({ room, players, onlineIds: players.map((p) => p.id), now: Date.now() })
     for (let i = 0; i < 30; i++) {
       seen.push(room.phase)
-      if (room.phase === 'realtalk') starters.add(room.phase_data.firstPlayerId)
+      if (room.phase === 'realtalk') (room.phase_data.firstPlayerIds ?? [room.phase_data.firstPlayerId]).forEach((id) => starters.add(id))
       const next = nextStep(snap())
       if (!next) break
       room = { ...room, ...next }
     }
     assert.equal(room.phase, 'hangout')
     assert.equal(starters.size, n)
-    assert.ok(!seen.some((phase) => phase.startsWith('wit_')))
+    assert.ok(seen.includes('wit_answer'))
+    assert.ok(!seen.includes('wit_vote') && !seen.includes('wit_reveal'))
+    assert.equal(realTalkSequence(room.content).length, 6)
   })
 }
 test('sleeping phones stay in the twelve-person discussion roster', () => {
@@ -256,14 +268,15 @@ test('old Wit phases and transitions resume into Real Talk', () => {
     let next = nextStep(s)
     if (next.phase === 'transition') next = nextStep({ ...s, room: { ...room, ...next } })
     assert.equal(next.phase, 'realtalk')
-    assert.equal(jumpTo(s, phase === 'transition' ? 'realtalk' : phase).phase, 'realtalk')
+    assert.equal(jumpTo(s, phase === 'transition' ? 'realtalk' : phase).phase, phase === 'wit_answer' ? 'wit_answer' : 'realtalk')
   }
 })
-test('skip and offline roster work for the two-game flow', () => {
+test('skip and offline roster work for the three-game flow', () => {
   const players = makePlayers(12)
   const room = { ...makeRoom(players), phase: 'tierlist', phase_data: { roster: players.map((p) => p.id) } }
   const s = { room, players, onlineIds: [], now: 0 }
-  assert.equal(skipGameStep(s).phase_data.next, 'realtalk')
+  assert.equal(skipGameStep(s).phase, 'wit_answer')
+  assert.ok(skipGameStep(s).phase_data.habet || skipGameStep(s).phase_data.party)
   const talk = jumpTo(s, 'realtalk')
   assert.equal(talk.phase_data.roster.length, 12)
   assert.equal(skipGameStep({ ...s, room: { ...room, ...talk } }).phase, 'hangout')
@@ -300,7 +313,7 @@ test('new-student sessions tailor every level and choose a three-step on-campus 
   assert.equal(tailored.content.computed.minutes_away, null)
   assert.match(tailored.content.tierlist.topic, /campus/i)
   for (const level of ['light', 'real', 'deep']) {
-    assert.equal(tailored.content.realtalk[level].length, 4)
+    assert.equal(tailored.content.realtalk[level].length, 2)
     assert.ok(tailored.content.realtalk[level].some((question) => /music/i.test(question)))
     assert.ok(tailored.content.realtalk[level].some((question) => CAMPUS_QUESTIONS[level].includes(question)))
   }
@@ -323,7 +336,102 @@ test('campus tier topics rotate and manual content edits remain authoritative', 
   const topics = Array.from({ length: 6 }, (_, seed) => buildBackupContent(players, BACKUP, SPOTS, { seed, room }).tierlist.topic)
   assert.equal(new Set(topics).size, 6)
   const edited = { ...room, content_source: 'wizard' }
-  assert.equal(contextualRoom(edited, players, BACKUP, SPOTS), edited)
+  assert.deepEqual(contextualRoom(edited, players, BACKUP, SPOTS), edited)
+})
+
+console.log('Habet')
+test('Habet blocks letters, rejects repeats, and accepts accented initial letters', () => {
+  const game = startHabet(makePlayers(3), 0)
+  const accepted = acceptHabet(game, 'Éclair', 100)
+  assert.deepEqual(accepted.blocked, ['E'])
+  assert.equal(accepted.currentIndex, 1)
+  assert.equal(game.answers.length, 0, 'the saved game is not mutated')
+  assert.throws(() => acceptHabet(accepted, 'Eggs', 200), /blocked/)
+  assert.throws(() => acceptHabet(accepted, '123', 200), /letter/)
+})
+test('Habet removes only the expired current player and stops at a winner', () => {
+  const game = startHabet(makePlayers(3), 0)
+  assert.equal(expireHabet(game, 100), game)
+  const second = expireHabet(game, 12000)
+  assert.deepEqual(second.eliminated, ['p0'])
+  assert.equal(second.remaining[second.currentIndex], 'p1')
+  const done = passHabet(second, 12001)
+  assert.equal(done.status, 'complete')
+  assert.deepEqual(done.winners, ['p2'])
+  assert.equal(expireHabet(done, 999999), done)
+  assert.throws(() => acceptHabet(game, 'Apple', 12000), /Time is up/)
+})
+test('Habet resumes after pause and caps play at two active minutes', () => {
+  const game = startHabet(makePlayers(12), 0, { description: 'New students exploring campus' })
+  assert.match(game.topic, /campus/)
+  const paused = pauseHabet(game, 5000)
+  assert.equal(expireHabet(paused, 999999), paused)
+  const resumed = pauseHabet(paused, 20000)
+  assert.equal(Date.parse(resumed.deadline), 27000)
+  assert.equal(Date.parse(resumed.ends_at), 135000)
+  const done = expireHabet(resumed, 135001)
+  assert.equal(done.status, 'complete')
+  assert.equal(done.winners.length, 12)
+  assert.ok(habetSeconds(100) >= 3)
+})
+test('legacy generator replies are limited to six discussion questions', () => {
+  const players = makePlayers(12)
+  const room = makeRoom(players)
+  for (const level of ['light', 'real', 'deep']) room.content.realtalk[level].push('Extra one '+level, 'Extra two '+level)
+  assert.equal(realTalkSequence(room.content).length, 6)
+  const adapted = contextualRoom(room, players, BACKUP, SPOTS)
+  assert.equal(realTalkSequence(adapted.content).length, 6)
+})
+
+console.log('Adaptive middle games')
+test('the catalog selects Habet, Wavelength, or Imposter using actual group answers', () => {
+  const group = (interests, picks) => makePlayers(6).map((player) => ({ ...player, interests, this_or_that: picks }))
+  const room = { round: 1 }
+  assert.deepEqual(GAME_CATALOG.map((game) => game.id), ['habet', 'wavelength', 'imposter'])
+  assert.equal(selectMiddleGame(group(['Food', 'Sports', 'Outdoors'], { games: 'b' }), room).id, 'habet')
+  assert.equal(selectMiddleGame(group(['Music', 'Fashion', 'Art & design'], { learning: 'a' }), room).id, 'wavelength')
+  assert.equal(selectMiddleGame(group(['Gaming', 'Anime', 'Tech'], {}), room).id, 'imposter')
+  assert.notEqual(selectMiddleGame(group(['Gaming', 'Anime', 'Tech'], {}).slice(0, 2), room).id, 'imposter')
+  assert.equal(selectMiddleGame(group([], {}), room).id, 'wavelength')
+})
+test('game catalog and choice are saved in existing room state and survive later profile changes', () => {
+  const players = makePlayers(6)
+  const room = { ...makeRoom(players), phase: 'building', phase_data: {} }
+  const next = nextStep({ room, players, onlineIds: [], now: 0 })
+  assert.equal(next.phase_data.game_catalog.length, 3)
+  const saved = { ...room, ...next }
+  assert.deepEqual(middleChoice(saved, []), next.phase_data.middle_game)
+  assert.match(next.phase_data.middle_game.reason, /picked|everyday/)
+})
+test('Wavelength gives only the clue giver a target card, then scores a group guess', () => {
+  const game = startParty({ id: 'wavelength', topic: 'Music' }, ['a', 'b', 'c'], 0)
+  assert.match(privatePartyCard(game, 'a').title, /target/)
+  assert.doesNotMatch(privatePartyCard(game, 'b').title, /target/)
+  assert.equal(privatePartyCard(game, 'outsider'), null)
+  const guessed = partyClue(game, 'A library playlist')
+  assert.equal(guessed.stage, 'guess')
+  assert.equal(partyGuess(guessed, game.target).score, 4)
+  assert.throws(() => partyGuess(guessed, 101))
+  assert.throws(() => partyClue(game, ''))
+})
+test('middle-game secrets vary by room and seven-player groups do not always pick the same role', () => {
+  const roster = ['a','b','c','d','e','f','g']
+  const choice = { id: 'imposter', topic: 'Gaming' }
+  assert.notEqual(middleSeed({ id: 'room-a', round: 1 }), middleSeed({ id: 'room-b', round: 1 }))
+  assert.notEqual(startParty(choice, roster, 0).imposter_id, startParty(choice, roster, 1).imposter_id)
+})
+test('Imposter uses a shared word, one clue per person, and a group vote', () => {
+  const game = startParty({ id: 'imposter', topic: 'Gaming' }, ['a', 'b', 'c'], 0)
+  assert.equal(game.imposter_id, 'b')
+  assert.match(privatePartyCard(game, 'b').title, /imposter/)
+  assert.ok(!privatePartyCard(game, 'b').body.includes(game.word))
+  assert.ok(privatePartyCard(game, 'a').body.includes(game.word))
+  assert.throws(() => partyVote(game, 'b'))
+  let current = game
+  for (let i = 0; i < 3; i++) current = partyNextClue(current)
+  assert.equal(current.stage, 'vote')
+  assert.throws(() => partyVote(current, 'outsider'))
+  assert.equal(partyVote(current, 'b').stage, 'reveal')
 })
 
 console.log('Community planner')

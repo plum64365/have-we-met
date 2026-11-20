@@ -1,0 +1,23 @@
+[
+  {
+    "id": "habet",
+    "name": "Habet",
+    "min_players": 2,
+    "interests": ["Food", "Cooking", "Sports", "Fitness", "Outdoors", "Travel"],
+    "description": "A quick category round with blocked first letters and a shrinking timer."
+  },
+  {
+    "id": "wavelength",
+    "name": "Wavelength",
+    "min_players": 2,
+    "interests": ["Music", "Books", "Art & design", "Fashion", "Going out", "Travel"],
+    "description": "Use a clue to guess a position between two extremes, then compare your thinking."
+  },
+  {
+    "id": "imposter",
+    "name": "Imposter",
+    "min_players": 3,
+    "interests": ["Gaming", "Anime", "Movies & TV", "Tech", "Books"],
+    "description": "Share one-word clues and work out who was not shown the shared word."
+  }
+]

@@ -2,7 +2,7 @@ import { IconArrow, Starburst } from '../components/ui.tsx'
 import type { HostScreenProps } from '../pages/Host.tsx'
 
 export function Transition({ room, act }: HostScreenProps) {
-  const next = room.phase_data.next === 'tierlist' ? 'Tier List' : 'Real Talk'
+  const next = room.phase_data.next === 'tierlist' ? 'Tier List' : 'Talk It Out'
   return (
     <div className="transition">
       <Starburst fill="#FFD23F" size={640}>

@@ -87,12 +87,15 @@ export async function updateQuizPlayer(playerId: string, round: number, patch: P
   const { data, error } = await supabase.from('players').update(patch)
     .eq('id', playerId).eq('quiz_round', round).select('id')
   if (error) throw new Error(error.message)
-  if (!data?.length) throw new Error('The quiz has moved to a new round. Refresh to continue.')
+  if (!data?.length) throw new Error('Your quiz did not save. The room may have moved on or the server refused the update. Your draft is kept; refresh or ask the host.')
 }
 
-export async function removePlayer(playerId: string): Promise<void> {
-  const { error } = await supabase.from('players').delete().eq('id', playerId)
+export async function removePlayer(playerId: string, roomId?: string): Promise<void> {
+  let query = supabase.from('players').delete().eq('id', playerId)
+  if (roomId) query = query.eq('room_id', roomId)
+  const { data, error } = await query.select('id')
   if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('This player was not removed. Refresh the room and try again.')
 }
 
 /** Stores a rounded location (or clears it with nulls). Nobody can read it back from the browser. */
@@ -123,8 +126,9 @@ export async function applyStep(room: RoomRow, step: Step, extra: Partial<RoomRo
 
 /** Changes room fields other than the phase (content, quick play, phase_data tweaks). */
 export async function patchRoom(room: RoomRow, patch: Partial<RoomRow>): Promise<void> {
-  const { error } = await supabase.from('rooms').update(patch).eq('id', room.id)
+  const { data, error } = await supabase.from('rooms').update(patch).eq('id', room.id).select('id')
   if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('The room could not be saved. It may have closed or the server denied permission.')
 }
 
 export async function saveContent(room: RoomRow, content: GameContent, source: RoomRow['content_source']): Promise<void> {

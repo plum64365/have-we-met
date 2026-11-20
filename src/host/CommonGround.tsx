@@ -1,11 +1,13 @@
 import { IconArrow, IconEyes } from '../components/ui.tsx'
 import type { HostScreenProps } from '../pages/Host.tsx'
 import { realTalkSequence } from '../shared/machine.ts'
+import { middleChoice, habetOrPartyTopic } from '../shared/middle-games.ts'
 import { interestCounts } from '../shared/profile.ts'
 
 export function CommonGround({ state, room, act }: HostScreenProps) {
   const content = room.content
   const total = state.players.length
+  const middle = middleChoice(room, state.players)
   const top = interestCounts(state.players).slice(0, 4)
   if (!content) return null
 
@@ -26,7 +28,10 @@ export function CommonGround({ state, room, act }: HostScreenProps) {
             <div className="bar-row" key={t.interest}>
               <span className="bar-label">{t.interest}</span>
               <span className="bar-track">
-                <span className={`bar-fill bar-${i}`} style={{ width: `${Math.max(8, (t.count / total) * 100)}%` }} />
+                <span
+                  className={`bar-fill bar-${i}`}
+                  style={{ width: `${Math.max(8, (t.count / total) * 100)}%` }}
+                />
               </span>
               <span className="bar-count">
                 {t.count}/{total}
@@ -52,8 +57,16 @@ export function CommonGround({ state, room, act }: HostScreenProps) {
             <IconEyes size={22} /> Phones away
           </p>
         </article>
+        <article className="card game-card game-habet">
+          <p className="game-kicker">Game 2 · {middle.name}</p>
+          <h3>{habetOrPartyTopic(middle, state.players, room)}</h3>
+          <p className="game-pick-reason">{middle.reason}</p>
+          <p className="phones-badge away">
+            <IconEyes size={22} /> {middle.id === 'habet' ? 'Say it out loud' : 'Check your phone card'}
+          </p>
+        </article>
         <article className="card game-card game-real">
-          <p className="game-kicker">Game 2 · Real Talk</p>
+          <p className="game-kicker">Game 3 · Talk It Out</p>
           <h3>{realTalkSequence(content).length} questions, light to deep</h3>
           <p className="phones-badge away">
             <IconEyes size={22} /> Phones away

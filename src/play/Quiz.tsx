@@ -3,6 +3,7 @@ import { IconCheck, IconEyes, IconMic, IconPin } from '../components/ui.tsx'
 import { INTRODUCTION_PREFIX, introductionFor, quizForContext } from '../shared/experience.ts'
 import type { EventContext } from '../shared/experience.ts'
 import { useSpeech } from '../hooks/useSpeech.ts'
+import { useDraft, saveError } from '../lib/drafts.ts'
 import { setPlayerLocation, updateQuizPlayer } from '../lib/api.ts'
 import { INTERESTS, MAX_INTERESTS, MIN_INTERESTS, quizComplete, voiceAnswersFor } from '../shared/quiz.ts'
 import type { QuizSelection, ThisOrThat } from '../shared/quiz.ts'
@@ -31,6 +32,7 @@ export function Quiz({
   round: number
   context?: EventContext
 }) {
+  const draftKey = `hwm.quiz.draft.v1.${player.room_id}.${player.id}.${round}`
   const questions = quizForContext(player.room_id, round, context)
   const [draft, setDraft] = useState(player)
   const [step, setStep] = useState(() => resumeStep(player, questions))
@@ -48,8 +50,8 @@ export function Quiz({
         await updateQuizPlayer(player.id, round, patch)
         setDraft((p) => ({ ...p, ...patch }))
         setStep(nextStep)
-      } catch {
-        setError('That did not save. Check your connection and try again.')
+      } catch (error) {
+        setError(saveError(error))
       } finally {
         pending.current = false
         setSaving(false)
@@ -85,12 +87,14 @@ export function Quiz({
         {step === 0 && (
           <InterestsStep
             player={draft}
+            draftKey={draftKey}
             onNext={(interests, bio) => save({ interests, voice_text: INTRODUCTION_PREFIX + bio }, 1)}
           />
         )}
         {step >= 1 && step <= 3 && (
           <VoiceStep
             key={question.id}
+            draftKey={`${draftKey}.${question.id}`}
             question={question}
             number={step}
             answer={voiceAnswersFor(draft).find((a) => a.question_id === question.id)?.answer ?? ''}
@@ -102,6 +106,7 @@ export function Quiz({
           <ThisOrThatStep
             player={draft}
             questions={questions.thisOrThat}
+            draftKey={draftKey}
             onNext={(this_or_that) => save({ this_or_that }, 5)}
             onBack={() => setStep(3)}
           />
@@ -115,6 +120,7 @@ export function Quiz({
           />
         )}
       </fieldset>
+      <p className="hint">Unfinished answers are kept on this browser. Next saves them for your room.</p>
       {saving && (
         <p className="hint" role="status">
           Saving…
@@ -131,23 +137,30 @@ export function Quiz({
 
 function InterestsStep({
   player,
+  draftKey,
   onNext,
 }: {
   player: PlayerRow
+  draftKey: string
   onNext: (interests: string[], bio: string) => void
 }) {
-  const [picked, setPicked] = useState<string[]>(player.interests)
-  const [bio, setBio] = useState(introductionFor(player))
+  const [data, setData, draftSaved] = useDraft(`${draftKey}.interests`, {
+    picked: player.interests,
+    bio: introductionFor(player),
+  })
+  const { picked, bio } = data
+  const setBio = (bio: string) => setData({ ...data, bio })
   const atMax = picked.length >= MAX_INTERESTS
 
   const toggle = (interest: string) =>
-    setPicked((list) =>
-      list.includes(interest)
-        ? list.filter((i) => i !== interest)
-        : list.length >= MAX_INTERESTS
-          ? list
-          : [...list, interest],
-    )
+    setData({
+      ...data,
+      picked: picked.includes(interest)
+        ? picked.filter((item) => item !== interest)
+        : picked.length >= MAX_INTERESTS
+          ? picked
+          : [...picked, interest],
+    })
 
   return (
     <div className="card pad step">
@@ -183,6 +196,9 @@ function InterestsStep({
           placeholder="What are you hoping to find here? Tell us about your interests, being new to campus, or something you would like to try."
         />
       </label>
+      {!draftSaved && (
+        <p className="hint">This browser could not keep your selections. Press Next to save them.</p>
+      )}
       <p className="hint">
         Your introduction helps tailor the game and is shared with your room. It is never added to public
         stories automatically.
@@ -199,19 +215,21 @@ function InterestsStep({
 }
 
 function VoiceStep({
+  draftKey,
   question,
   number,
   answer,
   onNext,
   onBack,
 }: {
+  draftKey: string
   question: VoiceQuestion
   number: number
   answer: string
   onNext: (text: string) => void
   onBack: () => void
 }) {
-  const [text, setText] = useState(answer)
+  const [text, setText, draftSaved] = useDraft(draftKey, answer)
   const [interim, setInterim] = useState('')
   const [typing, setTyping] = useState(false)
   const base = useRef('')
@@ -270,6 +288,7 @@ function VoiceStep({
         </>
       )}
 
+      {!draftSaved && <p className="hint">This browser could not keep this answer. Press Next to save it.</p>}
       {speech.failure && !typing && <p className="hint">{speech.failure} Typing works just as well.</p>}
       {!speech.supported && (
         <p className="hint">Voice is not available in this browser, so type your answer.</p>
@@ -314,22 +333,30 @@ function VoiceStep({
 
 function ThisOrThatStep({
   player,
+  draftKey,
   questions,
   onNext,
   onBack,
 }: {
+  draftKey: string
   questions: ThisOrThat[]
   player: PlayerRow
   onNext: (picks: Record<string, 'a' | 'b'>) => void
   onBack: () => void
 }) {
-  const [picks, setPicks] = useState<Record<string, 'a' | 'b'>>(player.this_or_that ?? {})
+  const [picks, setPicks, draftSaved] = useDraft<Record<string, 'a' | 'b'>>(
+    `${draftKey}.picks`,
+    player.this_or_that ?? {},
+  )
   const complete = questions.every((q) => picks[q.key])
 
   return (
     <div className="card pad step">
       <h1>This or that?</h1>
       <p className="hint">Go with your gut.</p>
+      {!draftSaved && (
+        <p className="hint">This browser could not keep your picks. Press Next to save them.</p>
+      )}
       {questions.map((q) => (
         <fieldset className="tot" key={q.key}>
           <legend className="sr-only">
@@ -341,7 +368,7 @@ function ThisOrThatStep({
                 type="radio"
                 name={q.key}
                 checked={picks[q.key] === side}
-                onChange={() => setPicks((p) => ({ ...p, [q.key]: side }))}
+                onChange={() => setPicks({ ...picks, [q.key]: side })}
               />
               {q[side].label}
             </label>

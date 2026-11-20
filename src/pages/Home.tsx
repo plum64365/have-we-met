@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Blob, Logo } from '../components/ui.tsx'
 import { useTheme } from '../hooks/useTheme.ts'
+import { useDraft } from '../lib/drafts.ts'
 import { recentRooms } from '../lib/returnVisits.ts'
 import { cleanRoomCode } from '../lib/roomCode.ts'
 import { AVATARS } from '../shared/quiz.ts'
@@ -9,7 +10,7 @@ import { AVATARS } from '../shared/quiz.ts'
 export default function Home() {
   useTheme('purple')
   const [rooms] = useState(recentRooms)
-  const [code, setCode] = useState('')
+  const [code, setCode] = useDraft('hwm.return.code.v1', '')
   const navigate = useNavigate()
   return (
     <main className="phone home">
@@ -34,7 +35,7 @@ export default function Home() {
       <div className="card pad home-choice">
         <h2>Join your people</h2>
         <p>
-          Pick your interests, rank a few things together, then get talking. One shared game for 2–12 people.
+          Pick your interests, rank things, play a game picked for your group, then talk it out. One shared game for 2–12 people.
         </p>
         <Link className="btn btn-big" to="/play">
           Join a game
